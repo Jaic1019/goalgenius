@@ -1,0 +1,127 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green: #00C86F;
+  --green-dark: #009952;
+  --green-dim: #00C86F22;
+  --gold: #F5C842;
+  --gold-dim: #F5C84222;
+  --red: #E8453C;
+  --bg: #0a0f0a;
+  --bg2: #111711;
+  --bg3: #182018;
+  --card: #141c14;
+  --border: #ffffff14;
+  --border2: #ffffff22;
+  --text: #e8f0e8;
+  --text2: #8a9e8a;
+  --text3: #4a5e4a;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* pitch texture background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 39px, #ffffff04 39px, #ffffff04 40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root { position: relative; z-index: 1; }
+
+/* ── Loading ── */
+.loading-screen {
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border2);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Typography ── */
+.display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.03em; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 18px; border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none; transition: all 0.15s; white-space: nowrap;
+}
+.btn-primary { background: var(--green); color: #000; }
+.btn-primary:hover { background: var(--green-dark); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+.btn-ghost:hover { border-color: var(--green); color: var(--green); }
+.btn-danger { background: #E8453C22; color: var(--red); border: 1px solid #E8453C44; }
+.btn-danger:hover { background: #E8453C33; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn-xs { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+
+/* ── Inputs ── */
+input, select {
+  background: var(--bg3); color: var(--text);
+  border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  padding: 9px 12px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+  outline: none; transition: border-color 0.15s; width: 100%;
+}
+input:focus, select:focus { border-color: var(--green); }
+input::placeholder { color: var(--text3); }
+select option { background: var(--bg2); }
+
+label { font-size: 13px; color: var(--text2); display: block; margin-bottom: 5px; }
+
+/* ── Cards ── */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.25rem;
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 500; padding: 3px 9px;
+  border-radius: 20px; letter-spacing: 0.02em;
+}
+.badge-green { background: var(--green-dim); color: var(--green); border: 1px solid #00C86F33; }
+.badge-gold { background: var(--gold-dim); color: var(--gold); border: 1px solid #F5C84233; }
+.badge-red { background: #E8453C22; color: var(--red); border: 1px solid #E8453C33; }
+.badge-gray { background: #ffffff0a; color: var(--text2); border: 1px solid var(--border); }
+
+/* ── Alerts ── */
+.alert {
+  padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 1rem;
+}
+.alert-success { background: var(--green-dim); color: var(--green); border: 1px solid #00C86F33; }
+.alert-error { background: #E8453C15; color: var(--red); border: 1px solid #E8453C33; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.3s ease both; }
