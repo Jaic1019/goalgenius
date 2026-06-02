@@ -18,6 +18,12 @@ function Flag({ url, name, size = 40 }) {
 }
 
 export default function MatchCard({ match, pred, open, draft = {}, onDraft, onSubmit, submitting, error }) {
+  const isTBD = !match.home_team || !match.away_team || 
+    match.home_team.trim().toUpperCase() === 'TBD' || 
+    match.away_team.trim().toUpperCase() === 'TBD'
+  
+  // Force open=false for TBD matches
+  if (isTBD) open = false
   const pts = pred && match.home_score != null
     ? calcPoints(
         { home_score: pred.home_score, away_score: pred.away_score, winner_pick: pred.winner_pick },

@@ -35,26 +35,19 @@ export default function Groups() {
   const { matches, loading } = useMatches()
   const [active, setActive] = useState(null)
 
-  // Only valid group stage matches (no TBD)
-  const validMatches = useMemo(() => matches.filter(m => {
-    const h = (m.home_team||'').trim().toUpperCase()
-    const a = (m.away_team||'').trim().toUpperCase()
-    return h !== 'TBD' && a !== 'TBD' && h !== '' && a !== ''
-  }), [matches])
-
   const groupNames = useMemo(() => {
-    const names = validMatches
+    const names = matches
       .filter(m => { const s=(m.group_stage||'').toLowerCase(); return s.includes('group') || s.includes('groupe') || /^[a-l]$/.test(s) })
       .map(m => m.group_stage).filter(Boolean)
     return [...new Set(names)].sort()
-  }, [validMatches])
+  }, [matches])
 
   const current = active || groupNames[0]
-  const standings = useMemo(() => current ? calcStandings(validMatches, current) : [], [validMatches, current])
-  const groupMatches = useMemo(() => validMatches
+  const standings = useMemo(() => current ? calcStandings(matches, current) : [], [matches, current])
+  const groupMatches = useMemo(() => matches
     .filter(m => m.group_stage === current)
     .sort((a,b) => a.match_date?.localeCompare(b.match_date)||a.match_time?.localeCompare(b.match_time)),
-    [validMatches, current])
+    [matches, current])
 
   if (loading && matches.length===0) return <div className="loading-screen"><div className="spinner"/></div>
 

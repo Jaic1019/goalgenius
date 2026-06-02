@@ -18,7 +18,8 @@ function stageBucket(g) {
 }
 
 // Hide TBD matches (knockout matches not yet determined)
-function isValidMatch(m) {
+function isValidMatch(m) { return true // show all matches including TBD
+  // OLD:
   const home = (m.home_team || '').trim().toUpperCase()
   const away = (m.away_team || '').trim().toUpperCase()
   return home !== 'TBD' && away !== 'TBD' && home !== '' && away !== ''
@@ -35,14 +36,13 @@ export default function Matches() {
   const [teamQ,   setTeamQ]   = useState('')
 
   // Only show valid (non-TBD) matches
-  const validMatches = useMemo(() => matches.filter(isValidMatch), [matches])
 
   const groupNames = useMemo(() => ['Tous', ...new Set(
-    validMatches.filter(m => stageBucket(m.group_stage) === 'Phase de groupes')
+    matches.filter(m => stageBucket(m.group_stage) === 'Phase de groupes')
            .map(m => m.group_stage).filter(Boolean).sort()
   )], [validMatches])
 
-  const filtered = useMemo(() => validMatches.filter(m => {
+  const filtered = useMemo(() => matches.filter(m => {
     if (statusF !== 'all' && m.status !== statusF) return false
     if (stageF !== 'Tous' && stageBucket(m.group_stage) !== stageF) return false
     if (groupF !== 'Tous' && m.group_stage !== groupF) return false
@@ -51,7 +51,7 @@ export default function Matches() {
       return m.home_team?.toLowerCase().includes(q) || m.away_team?.toLowerCase().includes(q)
     }
     return true
-  }), [validMatches, statusF, stageF, groupF, teamQ])
+  }), [matches, statusF, stageF, groupF, teamQ])
 
   const live     = filtered.filter(m => m.status === 'live')
   const upcoming = filtered.filter(m => m.status === 'upcoming')
@@ -87,7 +87,7 @@ export default function Matches() {
       <div className="page-header">
         <h1 className="page-title">Calendrier des <span>Matchs</span></h1>
         <p className="page-sub">
-          {validMatches.length} matchs · Pronostics verrouillés au coup d'envoi · Horaires en CET
+          {matches.length} matchs · Pronostics verrouillés au coup d'envoi · Horaires en CET
           <span className={`api-dot ${apiStatus}`} style={{marginLeft:8}}/>
           {lastSync && ` Sync ${lastSync.toLocaleTimeString('fr-FR')}`}
         </p>
