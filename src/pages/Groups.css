@@ -28,3 +28,12 @@
 .gm-mid{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:80px}
 .gm-sc{font-size:22px;color:var(--mca3);line-height:1}
 .gm-dt{font-size:11px;color:var(--text3);text-align:center;font-weight:600}
+
+.gflag-emoji { font-size: 22px; line-height: 1; flex-shrink: 0; }
+.live-score { color: var(--red) !important; animation: pulse 1.4s ease infinite; }
+
+/* Updated st-head and st-row to match new grid */
+.st-head { grid-template-columns: 28px 1fr 28px 28px 28px 28px 32px 32px 40px 46px !important; }
+.st-row { grid-template-columns: 28px 1fr 28px 28px 28px 28px 32px 32px 40px 46px !important; }
+.st-team { display: flex; align-items: center; gap: 7px; }
+.st-rk { font-size: 11px; color: var(--text3); font-weight: 700; }

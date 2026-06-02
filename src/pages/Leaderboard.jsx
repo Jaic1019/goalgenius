@@ -10,12 +10,17 @@ export default function Leaderboard() {
   const { matches } = useMatches()
   const [board, setBoard]       = useState([])
   const [loading, setLoading]   = useState(true)
-  const [expanded, setExpanded] = useState(null) // uid of expanded row
-  const [histories, setHistories] = useState({}) // uid -> prediction history
+  const [expanded, setExpanded] = useState(null)
+  const [histories, setHistories] = useState({})
+  const [finishedCount, setFinishedCount] = useState(0)
 
   useEffect(() => { if (matches.length > 0) buildBoard() }, [matches])
 
   async function buildBoard() {
+    // Only finished matches count
+    const finishedMatches = matches.filter(m => m.status === 'finished' && m.home_score != null)
+    setFinishedCount(finishedMatches.length)
+
     const { data } = await supabase
       .from('predictions')
       .select('user_id, match_id, home_score, away_score, winner_pick, profile:profiles(full_name, role)')
@@ -23,27 +28,29 @@ export default function Leaderboard() {
     if (!data) { setLoading(false); return }
 
     const matchMap = {}
-    for (const m of matches) matchMap[m.id] = m
+    for (const m of finishedMatches) matchMap[m.id] = m
 
     const userMap = {}
     for (const p of data) {
       const uid  = p.user_id
       const name = p.profile?.full_name ?? 'Inconnu'
       const role = p.profile?.role ?? 'employee'
+
+      // Only count predictions for finished matches
+      const match = matchMap[p.match_id]
+      if (!match) continue // skip if match not finished yet
+
       if (!userMap[uid]) userMap[uid] = { uid, name, role, points:0, preds:0, perfect:0, correct:0, partial:0 }
       userMap[uid].preds++
 
-      const match = matchMap[p.match_id]
-      if (match?.status === 'finished' && match.home_score != null) {
-        const pts = calcPoints(
-          { home_score: p.home_score, away_score: p.away_score, winner_pick: p.winner_pick },
-          { home_score: match.home_score, away_score: match.away_score }
-        )
-        userMap[uid].points += pts ?? 0
-        if (pts === 10) userMap[uid].perfect++
-        else if (pts === 5) userMap[uid].correct++
-        else if (pts === 3) userMap[uid].partial++
-      }
+      const pts = calcPoints(
+        { home_score: p.home_score, away_score: p.away_score, winner_pick: p.winner_pick },
+        { home_score: match.home_score, away_score: match.away_score }
+      )
+      userMap[uid].points += pts ?? 0
+      if (pts === 10) userMap[uid].perfect++
+      else if (pts === 5) userMap[uid].correct++
+      else if (pts === 3) userMap[uid].partial++
     }
 
     const sorted = Object.values(userMap)
@@ -93,17 +100,40 @@ export default function Leaderboard() {
     <div className="lb-page page fade-up">
       <div className="page-header">
         <h1 className="page-title">Classement <span>Général</span></h1>
-        <p className="page-sub">{board.length} participants · Mis à jour automatiquement</p>
+        <p className="page-sub">
+          {finishedCount === 0
+            ? 'Le classement sera mis à jour après le premier match terminé'
+            : `${finishedCount} match${finishedCount>1?'s':''} terminé${finishedCount>1?'s':''} · ${board.length} participant${board.length>1?'s':''} · Mis à jour automatiquement`
+          }
+        </p>
       </div>
 
+      {/* No finished matches yet */}
+      {finishedCount === 0 && (
+        <div className="lb-waiting">
+          <div className="lbw-icon">⏳</div>
+          <div className="lbw-title">Le tournoi n'a pas encore commencé</div>
+          <div className="lbw-sub">Le classement apparaîtra automatiquement après le premier match terminé.<br/>En attendant, soumettez vos pronostics !</div>
+          <div className="lbw-rules">
+            <div className="lbw-rules-title">Rappel des règles :</div>
+            {SCORING_RULES.filter(r=>r.pts>0).map(r => (
+              <div key={r.pts} className="lbw-rule">
+                <span className="lbw-pts display">{r.pts}</span>
+                <span>{r.emoji} {r.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* My position banner */}
-      {myEntry && (
+      {myEntry && finishedCount > 0 && (
         <div className="my-pos-card">
           <div className="mp-rank display">#{myRank}</div>
           <div className="mp-info">
             <div className="mp-name">{myEntry.name}</div>
             <div className="mp-stats">
-              {myEntry.perfect} parfaits · {myEntry.correct} bons · {myEntry.partial} partiels · {myEntry.preds} pronostics
+              {myEntry.perfect} parfait{myEntry.perfect>1?'s':''} · {myEntry.correct} bon{myEntry.correct>1?'s':''} · {myEntry.partial} partiel{myEntry.partial>1?'s':''} · {myEntry.preds} pronostic{myEntry.preds>1?'s':''}
             </div>
           </div>
           <div className="mp-pts">
@@ -113,11 +143,8 @@ export default function Leaderboard() {
         </div>
       )}
 
-      {board.length === 0 ? (
-        <div className="empty-state"><div className="empty-icon">🏆</div><p>Aucun pronostic pour l'instant !</p></div>
-      ) : (
+      {board.length > 0 && finishedCount > 0 && (
         <>
-          {/* Podium */}
           {board.length >= 3 && (
             <div className="podium">
               {[{e:board[1],r:1},{e:board[0],r:0},{e:board[2],r:2}].map(({e,r}) => (
@@ -133,20 +160,19 @@ export default function Leaderboard() {
             </div>
           )}
 
-          {/* Table */}
           <div className="lb-table">
             <div className="lb-head">
               <span>#</span>
               <span>Collaborateur</span>
-              <span className="ar">Pronostics</span>
+              <span className="ar">Matchs</span>
               <span className="ar">🏆 Parfaits</span>
               <span className="ar">⭐ Bons</span>
               <span className="ar pts-h">Points</span>
               <span></span>
             </div>
             {board.map((e,i) => (
-              <>
-                <div key={e.uid} className={`lb-row ${e.uid===user?.id?'lb-me':''}`}
+              <div key={e.uid}>
+                <div className={`lb-row ${e.uid===user?.id?'lb-me':''}`}
                   onClick={() => loadHistory(e.uid)} style={{cursor:'pointer'}}>
                   <span className="lb-rank">{i<3?M[i]:<span className="lb-rn">{i+1}</span>}</span>
                   <span className="lb-name">
@@ -162,44 +188,39 @@ export default function Leaderboard() {
                   <span className="lb-expand">{expanded===e.uid?'▲':'▼'}</span>
                 </div>
 
-                {/* History row */}
                 {expanded === e.uid && histories[e.uid] && (
-                  <div key={`hist-${e.uid}`} className="history-panel">
-                    <div className="hist-title">Historique des pronostics de {e.name.split(' ')[0]}</div>
-                    {histories[e.uid].length === 0 && <p className="hist-empty">Aucun pronostic soumis.</p>}
-                    {histories[e.uid].map((h,hi) => (
-                      <div key={hi} className={`hist-row ${h.pts === 10 ? 'hist-perfect' : h.pts >= 5 ? 'hist-good' : h.pts === 3 ? 'hist-partial' : ''}`}>
-                        <span className="hist-match">{h.match.home_team} vs {h.match.away_team}</span>
-                        <span className="hist-group">{h.match.group_stage}</span>
-                        <span className="hist-result">
-                          {h.match.home_score != null ? `${h.match.home_score}–${h.match.away_score}` : '—'}
-                        </span>
-                        <span className="hist-pred">
-                          Pronostic : {h.pred.home_score}–{h.pred.away_score}
-                          {h.pred.winner_pick && ` · ${h.pred.winner_pick === 'home' ? h.match.home_team : h.pred.winner_pick === 'away' ? h.match.away_team : 'Nul'}`}
-                        </span>
-                        <span className={`badge ${h.pts===10?'badge-gold':h.pts===5?'badge-green':h.pts===3?'badge-blue':'badge-gray'}`}>
-                          {h.pts != null ? `${h.pts} pts` : 'En attente'}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="history-panel">
+                    <div className="hist-title">Historique de {e.name.split(' ')[0]} — matchs terminés uniquement</div>
+                    {histories[e.uid].filter(h => h.match.status === 'finished').length === 0
+                      ? <p className="hist-empty">Aucun pronostic sur des matchs terminés.</p>
+                      : histories[e.uid].filter(h => h.match.status === 'finished').map((h,hi) => (
+                        <div key={hi} className={`hist-row ${h.pts===10?'hist-perfect':h.pts===5?'hist-good':h.pts===3?'hist-partial':''}`}>
+                          <span className="hist-match">{h.match.home_team} vs {h.match.away_team}</span>
+                          <span className="hist-group">{h.match.group_stage}</span>
+                          <span className="hist-result">{h.match.home_score}–{h.match.away_score}</span>
+                          <span className="hist-pred">
+                            Pronostic : {h.pred.home_score}–{h.pred.away_score}
+                            {h.pred.winner_pick && ` · ${h.pred.winner_pick==='home'?h.match.home_team:h.pred.winner_pick==='away'?h.match.away_team:'Nul'}`}
+                          </span>
+                          <span className={`badge ${h.pts===10?'badge-gold':h.pts===5?'badge-green':h.pts===3?'badge-blue':'badge-gray'}`}>
+                            {h.pts!=null?`${h.pts} pts`:'—'}
+                          </span>
+                        </div>
+                      ))
+                    }
                   </div>
                 )}
-              </>
+              </div>
             ))}
           </div>
 
-          {/* Scoring rules */}
           <div className="card scoring-ref">
             <div className="sr-title">Système de points</div>
             <div className="sr-grid">
               {SCORING_RULES.map(r => (
                 <div key={r.pts} className="sr-item">
                   <span className="sr-pts display">{r.pts}</span>
-                  <div>
-                    <div className="sr-label">{r.emoji} {r.label}</div>
-                    <div className="sr-desc">{r.desc}</div>
-                  </div>
+                  <div><div className="sr-label">{r.emoji} {r.label}</div><div className="sr-desc">{r.desc}</div></div>
                 </div>
               ))}
             </div>

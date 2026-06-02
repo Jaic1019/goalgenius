@@ -13,8 +13,15 @@ function stageBucket(g) {
   if (s.includes('r16') || s.includes('16') || s.includes('top 16')) return 'Top 16'
   if (s.includes('qf') || s.includes('quart')) return 'Quarts de finale'
   if (s.includes('sf') || s.includes('semi') || s.includes('demi')) return 'Demi-finales'
-  if ((s.includes('final') || s.includes('finale')) && !s.includes('semi') && !s.includes('quart') && !s.includes('demi')) return 'Finale'
+  if ((s.includes('final') || s.includes('finale')) && !s.includes('semi') && !s.includes('quart') && !s.includes('demi') && !s.includes('3rd')) return 'Finale'
   return 'Phase de groupes'
+}
+
+// Hide TBD matches (knockout matches not yet determined)
+function isValidMatch(m) {
+  const home = (m.home_team || '').trim().toUpperCase()
+  const away = (m.away_team || '').trim().toUpperCase()
+  return home !== 'TBD' && away !== 'TBD' && home !== '' && away !== ''
 }
 
 export default function Matches() {
@@ -27,12 +34,15 @@ export default function Matches() {
   const [groupF,  setGroupF]  = useState('Tous')
   const [teamQ,   setTeamQ]   = useState('')
 
-  const groupNames = useMemo(() => ['Tous', ...new Set(
-    matches.filter(m => stageBucket(m.group_stage) === 'Phase de groupes')
-           .map(m => m.group_stage).filter(Boolean).sort()
-  )], [matches])
+  // Only show valid (non-TBD) matches
+  const validMatches = useMemo(() => matches.filter(isValidMatch), [matches])
 
-  const filtered = useMemo(() => matches.filter(m => {
+  const groupNames = useMemo(() => ['Tous', ...new Set(
+    validMatches.filter(m => stageBucket(m.group_stage) === 'Phase de groupes')
+           .map(m => m.group_stage).filter(Boolean).sort()
+  )], [validMatches])
+
+  const filtered = useMemo(() => validMatches.filter(m => {
     if (statusF !== 'all' && m.status !== statusF) return false
     if (stageF !== 'Tous' && stageBucket(m.group_stage) !== stageF) return false
     if (groupF !== 'Tous' && m.group_stage !== groupF) return false
@@ -41,7 +51,7 @@ export default function Matches() {
       return m.home_team?.toLowerCase().includes(q) || m.away_team?.toLowerCase().includes(q)
     }
     return true
-  }), [matches, statusF, stageF, groupF, teamQ])
+  }), [validMatches, statusF, stageF, groupF, teamQ])
 
   const live     = filtered.filter(m => m.status === 'live')
   const upcoming = filtered.filter(m => m.status === 'upcoming')
@@ -77,13 +87,12 @@ export default function Matches() {
       <div className="page-header">
         <h1 className="page-title">Calendrier des <span>Matchs</span></h1>
         <p className="page-sub">
-          {matches.length} matchs · Pronostics verrouillés au coup d'envoi · Horaires en CET
+          {validMatches.length} matchs · Pronostics verrouillés au coup d'envoi · Horaires en CET
           <span className={`api-dot ${apiStatus}`} style={{marginLeft:8}}/>
           {lastSync && ` Sync ${lastSync.toLocaleTimeString('fr-FR')}`}
         </p>
       </div>
 
-      {/* Filters */}
       <div className="filters-panel card">
         <div className="filter-row">
           <span className="filter-lbl">Statut</span>
