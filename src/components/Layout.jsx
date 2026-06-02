@@ -3,12 +3,12 @@ import { useAuth } from '../lib/AuthContext'
 import './Layout.css'
 
 const NAV = [
-  { to: '/',            label: 'Home',        icon: '⚡', end: true },
-  { to: '/matches',     label: 'Matches',     icon: '⚽' },
-  { to: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
-  { to: '/groups',      label: 'Groups',      icon: '📊' },
-  { to: '/teams',       label: 'Teams',       icon: '🌍' },
-  { to: '/stadiums',    label: 'Stadiums',    icon: '🏟️' },
+  { to: '/',            label: 'Accueil',      icon: '⚡', end: true },
+  { to: '/matches',     label: 'Matchs',       icon: '⚽' },
+  { to: '/leaderboard', label: 'Classement',   icon: '🏆' },
+  { to: '/groups',      label: 'Groupes',      icon: '📊' },
+  { to: '/teams',       label: 'Équipes',      icon: '🌍' },
+  { to: '/stadiums',    label: 'Stades',       icon: '🏟️' },
 ]
 
 export default function Layout() {
@@ -21,9 +21,9 @@ export default function Layout() {
       <header className="header">
         <NavLink to="/" className="brand">
           <img src="/mca-logo.png" alt="MCA Technology" className="brand-logo" />
-          <div className="brand-divider" />
+          <div className="brand-sep" />
           <span className="brand-app display">GoalGenius</span>
-          <span className="brand-wc">WC 2026</span>
+          <span className="brand-tag">CDM 2026</span>
         </NavLink>
 
         <nav className="nav">
@@ -35,7 +35,8 @@ export default function Layout() {
             </NavLink>
           ))}
           {isAdmin && (
-            <NavLink to="/admin" className={({ isActive }) => `nav-link nav-admin ${isActive ? 'active' : ''}`}>
+            <NavLink to="/admin"
+              className={({ isActive }) => `nav-link nav-admin ${isActive ? 'active' : ''}`}>
               <span className="nav-icon">⚙️</span>
               <span className="nav-text">Admin</span>
             </NavLink>
@@ -47,10 +48,10 @@ export default function Layout() {
             <div className="user-av">{profile?.full_name?.[0] ?? '?'}</div>
             <div className="user-meta">
               <span className="user-name">{profile?.full_name?.split(' ')[0]}</span>
-              {isAdmin && <span className="admin-badge">Admin</span>}
+              {isAdmin && <span className="admin-tag">Admin</span>}
             </div>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={handleSignOut}>Sign out</button>
+          <button className="btn btn-ghost btn-sm" onClick={handleSignOut}>Déconnexion</button>
         </div>
       </header>
 
@@ -60,7 +61,7 @@ export default function Layout() {
 
       <footer className="footer">
         <img src="/mca-logo.png" alt="MCA Technology" className="footer-logo" />
-        <span className="footer-text">Work With Fun · World Cup 2026 Predictor</span>
+        <span className="footer-txt">Work With Fun · Coupe du Monde 2026</span>
       </footer>
     </div>
   )

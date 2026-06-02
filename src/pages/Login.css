@@ -1,40 +1,40 @@
-.login-page { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 3rem; padding: 2rem 4rem; position: relative; overflow: hidden; }
-.login-glow { position: fixed; top: -300px; left: 25%; width: 600px; height: 600px; background: radial-gradient(ellipse, rgba(86,48,131,0.25) 0%, transparent 70%); pointer-events: none; z-index: 0; }
-.login-left, .login-right { position: relative; z-index: 1; }
+.login-page { min-height:100vh; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:3rem; padding:2rem 4rem; position:relative; overflow:hidden; }
+.login-glow { position:fixed; top:-200px; left:20%; width:600px; height:600px; background:radial-gradient(ellipse,rgba(86,48,131,0.22) 0%,transparent 70%); pointer-events:none; z-index:0; }
+.login-left, .login-right { position:relative; z-index:1; }
+.login-brand { display:flex; flex-direction:column; gap:8px; margin-bottom:1.5rem; }
+.login-logo { height:44px; width:auto; object-fit:contain; }
+.login-tagline { font-size:13px; font-weight:600; color:var(--text3); letter-spacing:0.04em; }
+.login-sep { width:48px; height:3px; background:linear-gradient(90deg,var(--mca2),transparent); border-radius:2px; margin-bottom:1.25rem; }
+.login-title { font-size:62px; color:var(--text); line-height:1; margin-bottom:6px; }
+.login-title span { color:var(--mca3); }
+.login-sub { font-size:14px; color:var(--text2); margin-bottom:2rem; font-weight:500; }
+.login-form { display:flex; flex-direction:column; gap:1rem; }
+.field { display:flex; flex-direction:column; }
+.login-hint { font-size:12px; color:var(--text3); margin-top:1rem; text-align:center; font-weight:500; }
 
-.login-brand { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.5rem; }
-.login-logo { height: 44px; width: auto; object-fit: contain; }
-.login-tagline { font-size: 12px; font-weight: 600; color: var(--text3); letter-spacing: 0.04em; }
-.login-sep { width: 40px; height: 2px; background: linear-gradient(90deg, var(--mca2), transparent); border-radius: 2px; margin-bottom: 1.25rem; }
-.login-title { font-size: 60px; color: var(--text); line-height: 1; margin-bottom: 6px; }
-.login-title span { color: var(--mca3); }
-.login-sub { font-size: 14px; color: var(--text2); margin-bottom: 2rem; }
-.login-form { display: flex; flex-direction: column; gap: 1rem; }
-.field { display: flex; flex-direction: column; }
-.login-hint { font-size: 12px; color: var(--text3); margin-top: 1rem; text-align: center; }
+.tournament-card { background:linear-gradient(135deg,var(--card2),var(--bg4)); border:1px solid var(--mca-border); border-radius:var(--radius); padding:1.5rem; margin-bottom:1rem; position:relative; overflow:hidden; }
+.tournament-card::before { content:''; position:absolute; top:-50px; right:-50px; width:160px; height:160px; background:radial-gradient(circle,rgba(86,48,131,0.25),transparent 70%); pointer-events:none; }
+.tc-trophy { font-size:36px; margin-bottom:10px; }
+.tc-title { font-size:26px; color:var(--text); line-height:1; margin-bottom:4px; }
+.tc-title span { color:var(--mca3); }
+.tc-dates { font-size:13px; color:var(--text2); margin-bottom:1.25rem; font-weight:500; }
+.tc-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.tc-stat { text-align:center; background:rgba(0,0,0,0.25); border-radius:var(--radius-sm); padding:10px 6px; }
+.tc-n { font-size:28px; color:var(--mca3); display:block; line-height:1; }
+.tc-l { font-size:10px; color:var(--text2); text-transform:uppercase; letter-spacing:0.06em; font-weight:700; }
 
-.tournament-card { background: linear-gradient(135deg, var(--card2), var(--bg4)); border: 1px solid var(--mca-border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; position: relative; overflow: hidden; }
-.tournament-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 140px; height: 140px; background: radial-gradient(circle, rgba(86,48,131,0.3), transparent 70%); pointer-events: none; }
-.tc-trophy { font-size: 36px; margin-bottom: 10px; }
-.tc-title { font-size: 28px; color: var(--text); line-height: 1; margin-bottom: 4px; }
-.tc-title span { color: var(--mca3); }
-.tc-dates { font-size: 13px; color: var(--text2); margin-bottom: 1.25rem; }
-.tc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.tc-stat { text-align: center; background: rgba(0,0,0,0.2); border-radius: var(--radius-sm); padding: 10px 6px; }
-.tc-n { font-size: 28px; color: var(--mca3); display: block; line-height: 1; }
-.tc-l { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+.rules-card { background:var(--card); border:1px solid var(--border2); border-radius:var(--radius); padding:1.25rem; }
+.rc-head { display:flex; align-items:center; gap:12px; margin-bottom:1rem; }
+.rc-icon { font-size:26px; }
+.rc-title { font-size:20px; color:var(--mca3); line-height:1; font-weight:600; }
+.rc-sub { font-size:12px; color:var(--text2); margin-top:2px; font-weight:500; }
+.rc-list { display:flex; flex-direction:column; gap:10px; }
+.rc-item { display:flex; align-items:flex-start; gap:14px; }
+.rc-pts { font-size:32px; color:var(--mca3); line-height:1; min-width:36px; }
+.rc-label { font-size:13px; font-weight:700; color:var(--text); }
+.rc-desc { font-size:12px; color:var(--text2); margin-top:2px; font-weight:500; }
 
-.rules-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
-.rc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; font-size: 22px; }
-.rc-title { font-size: 20px; color: var(--mca3); line-height: 1; }
-.rc-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
-.rc-list { display: flex; flex-direction: column; gap: 10px; }
-.rc-item { display: flex; align-items: flex-start; gap: 14px; }
-.rc-pts { font-size: 30px; color: var(--mca3); line-height: 1; min-width: 36px; }
-.rc-label { font-size: 13px; font-weight: 600; color: var(--text); }
-.rc-desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
-
-@media (max-width: 900px) {
-  .login-page { grid-template-columns: 1fr; padding: 2rem 1.5rem; max-width: 440px; margin: 0 auto; }
-  .login-right { display: none; }
+@media(max-width:900px) {
+  .login-page { grid-template-columns:1fr; padding:2rem 1.5rem; max-width:440px; margin:0 auto; }
+  .login-right { display:none; }
 }

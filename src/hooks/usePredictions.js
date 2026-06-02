@@ -4,7 +4,7 @@ import { useAuth } from '../lib/AuthContext'
 
 export function usePredictions() {
   const { user } = useAuth()
-  const [predictions, setPredictions] = useState({}) // keyed by match_id
+  const [predictions, setPredictions] = useState({})
   const [saving, setSaving] = useState({})
 
   const load = useCallback(async () => {
@@ -17,24 +17,23 @@ export function usePredictions() {
 
   useEffect(() => { load() }, [load])
 
-  async function save(matchId, homeScore, awayScore) {
-    if (!user) return false
+  async function save(matchId, homeScore, awayScore, winnerPick) {
+    if (!user) return { ok: false, error: 'Non connecté' }
+    if (homeScore === null || homeScore === undefined || awayScore === null || awayScore === undefined) {
+      return { ok: false, error: 'Veuillez entrer les deux scores' }
+    }
+    if (!winnerPick) {
+      return { ok: false, error: 'Veuillez choisir un vainqueur' }
+    }
     setSaving(s => ({ ...s, [matchId]: true }))
     const { error } = await supabase.from('predictions').upsert(
-      { user_id: user.id, match_id: matchId, home_score: Number(homeScore), away_score: Number(awayScore) },
+      { user_id: user.id, match_id: matchId, home_score: Number(homeScore), away_score: Number(awayScore), winner_pick: winnerPick },
       { onConflict: 'user_id,match_id' }
     )
-    if (!error) setPredictions(p => ({ ...p, [matchId]: { home_score: Number(homeScore), away_score: Number(awayScore) } }))
+    if (!error) setPredictions(p => ({ ...p, [matchId]: { home_score: Number(homeScore), away_score: Number(awayScore), winner_pick: winnerPick } }))
     setSaving(s => ({ ...s, [matchId]: false }))
-    return !error
+    return { ok: !error, error: error?.message }
   }
 
   return { predictions, saving, save, reload: load }
-}
-
-export async function loadAllPredictions() {
-  const { data } = await supabase
-    .from('predictions')
-    .select('*, profile:profiles(full_name, role)')
-  return data || []
 }

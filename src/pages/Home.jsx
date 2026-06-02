@@ -26,40 +26,39 @@ function useCountdown(target) {
 export default function Home() {
   const { matches, loading, apiStatus, lastSync } = useMatches()
   const { predictions, saving, save } = usePredictions()
-  const [drafts, setDrafts] = useState({})
-  const [alert, setAlert] = useState(null)
+  const [drafts, setDrafts]   = useState({})
+  const [alerts, setAlerts]   = useState({})
   const cd = useCountdown(WC_START)
 
   const todayStr = new Date().toISOString().slice(0, 10)
-  const live    = matches.filter(m => m.status === 'live')
-  const today   = matches.filter(m => m.match_date === todayStr && m.status !== 'live')
-  const next    = matches.filter(m => m.status === 'upcoming').slice(0, 3)
-  const recent  = matches.filter(m => m.status === 'finished').slice(-3).reverse()
+  const live   = matches.filter(m => m.status === 'live')
+  const today  = matches.filter(m => m.match_date === todayStr && m.status !== 'live')
+  const next   = matches.filter(m => m.status === 'upcoming').slice(0, 4)
+  const recent = matches.filter(m => m.status === 'finished').slice(-3).reverse()
 
   function canPredict(m) {
     if (m.status !== 'upcoming') return false
-    try { return new Date() < new Date(`${m.match_date}T${m.match_time}:00`) } catch { return false }
+    try { return new Date() < new Date(`${m.match_date}T${m.match_time}`) } catch { return false }
   }
 
-  function setDraft(id, side, val) {
-    setDrafts(p => ({ ...p, [id]: { ...p[id], [side]: val === '' ? '' : Math.max(0, parseInt(val)||0) } }))
+  function setDraft(id, field, val) {
+    setDrafts(p => ({ ...p, [id]: { ...p[id], [field]: val } }))
   }
 
   async function handleSave(match) {
     const d = drafts[match.id] || {}
-    if (d.home === undefined || d.home === '' || d.away === undefined || d.away === '') {
-      showAlert('Enter both scores first.', 'error'); return
+    const { ok, error } = await save(match.id, d.home, d.away, d.winner)
+    if (ok) {
+      setAlerts(a => ({ ...a, [match.id]: { type: 'success', msg: '✅ Pronostic enregistré !' } }))
+      setDrafts(p => { const n = {...p}; delete n[match.id]; return n })
+    } else {
+      setAlerts(a => ({ ...a, [match.id]: { type: 'error', msg: error } }))
     }
-    const ok = await save(match.id, d.home, d.away)
-    if (ok) { showAlert('Prediction saved! 🎯', 'success'); setDrafts(p => { const n={...p}; delete n[match.id]; return n }) }
-    else showAlert('Failed to save. Try again.', 'error')
+    setTimeout(() => setAlerts(a => { const n = {...a}; delete n[match.id]; return n }), 4000)
   }
-
-  function showAlert(msg, type) { setAlert({msg,type}); setTimeout(()=>setAlert(null),3000) }
 
   return (
     <div className="home page fade-up">
-      {alert && <div className={`alert alert-${alert.type}`}>{alert.msg}</div>}
 
       {/* Hero */}
       <div className="hero">
@@ -67,17 +66,17 @@ export default function Home() {
         <div className="hero-bg display">2026</div>
         <div className="hero-content">
           <div className="hero-brand">
-            <img src="/mca-logo.png" alt="MCA Technology" className="hero-mca-logo" />
-            <span className="hero-presents">presents</span>
+            <img src="/mca-logo.png" alt="MCA Technology" className="hero-logo" />
+            <span className="hero-presents">présente</span>
           </div>
           <h1 className="hero-title display">
-            {cd.started ? '⚽ Tournament Underway' : 'World Cup'} <span>2026</span>
+            {cd.started ? '⚽ Tournoi en cours' : 'Coupe du Monde'} <span>2026</span>
           </h1>
-          <p className="hero-sub">USA · Mexico · Canada · June 11 – July 19</p>
+          <p className="hero-sub">USA · Mexique · Canada · 11 Juin – 19 Juillet</p>
 
           {!cd.started && (
             <div className="countdown">
-              {[['days',cd.days],['hours',cd.hours],['min',cd.minutes],['sec',cd.seconds]].map(([l,v]) => (
+              {[['Jours',cd.days],['Heures',cd.hours],['Min',cd.minutes],['Sec',cd.seconds]].map(([l,v]) => (
                 <div key={l} className="cd-block">
                   <div className="cd-n display">{String(v).padStart(2,'0')}</div>
                   <div className="cd-l">{l}</div>
@@ -87,30 +86,34 @@ export default function Home() {
           )}
 
           <div className="hero-stats">
-            {[['48','Teams'],['104','Matches'],['12','Groups'],['16','Stadiums']].map(([n,l],i) => (
-              <>
-                {i > 0 && <div key={`div-${l}`} className="hs-div"/>}
-                <div key={l} className="hs-item">
+            {[['48','Équipes'],['104','Matchs'],['12','Groupes'],['16','Stades']].map(([n,l],i,arr) => (
+              <span key={l} style={{display:'flex',alignItems:'center',gap:18}}>
+                <div className="hs-item">
                   <span className="hs-n display">{n}</span>
                   <span className="hs-l">{l}</span>
                 </div>
-              </>
+                {i < arr.length-1 && <div className="hs-div"/>}
+              </span>
             ))}
           </div>
         </div>
 
-        {/* API status */}
-        <div className="api-status-bar">
-          <div className={`api-dot ${apiStatus}`} />
-          <span>{apiStatus === 'ok' ? 'Live data connected' : apiStatus === 'warn' ? 'Using cached data' : 'API unreachable — using database'}</span>
-          {lastSync && <span>· Last sync {lastSync.toLocaleTimeString('en-GB')}</span>}
+        <div className="api-bar">
+          <span className={`api-dot ${apiStatus}`}/>
+          <span className="api-txt">
+            {apiStatus === 'ok' ? 'Données en direct connectées'
+            : apiStatus === 'warn' ? 'Mode dégradé — données locales'
+            : apiStatus === 'error' ? 'API inaccessible — base de données locale utilisée'
+            : 'Connexion...'}
+          </span>
+          {lastSync && <span className="api-sync">· Sync {lastSync.toLocaleTimeString('fr-FR')}</span>}
         </div>
       </div>
 
       {/* Live */}
       {live.length > 0 && (
         <section className="fade-up-2">
-          <div className="section-label section-label-live"><span className="live-dot"/>Live Now</div>
+          <div className="section-label section-label-live"><span className="live-dot"/>En direct maintenant</div>
           <div className="matches-grid">
             {live.map(m => <MatchCard key={m.id} match={m} pred={predictions[m.id]} open={false} />)}
           </div>
@@ -120,12 +123,15 @@ export default function Home() {
       {/* Today */}
       {today.length > 0 && (
         <section className="fade-up-2">
-          <div className="section-label">Today's Matches</div>
+          <div className="section-label">Matchs d'aujourd'hui</div>
           <div className="matches-grid">
             {today.map(m => (
               <MatchCard key={m.id} match={m} pred={predictions[m.id]}
                 open={canPredict(m)} draft={drafts[m.id]||{}}
-                onDraft={(s,v)=>setDraft(m.id,s,v)} onSubmit={()=>handleSave(m)} submitting={saving[m.id]} />
+                onDraft={(f,v) => setDraft(m.id,f,v)}
+                onSubmit={() => handleSave(m)} submitting={saving[m.id]}
+                error={alerts[m.id]?.type==='error' ? alerts[m.id].msg : null}
+              />
             ))}
           </div>
         </section>
@@ -135,14 +141,17 @@ export default function Home() {
       {next.length > 0 && (
         <section className="fade-up-3">
           <div className="section-label-row">
-            <div className="section-label">Next Matches</div>
-            <Link to="/matches" className="see-all">View all →</Link>
+            <div className="section-label">Prochains matchs</div>
+            <Link to="/matches" className="see-all">Voir tout →</Link>
           </div>
           <div className="matches-grid">
             {next.map(m => (
               <MatchCard key={m.id} match={m} pred={predictions[m.id]}
                 open={canPredict(m)} draft={drafts[m.id]||{}}
-                onDraft={(s,v)=>setDraft(m.id,s,v)} onSubmit={()=>handleSave(m)} submitting={saving[m.id]} />
+                onDraft={(f,v) => setDraft(m.id,f,v)}
+                onSubmit={() => handleSave(m)} submitting={saving[m.id]}
+                error={alerts[m.id]?.type==='error' ? alerts[m.id].msg : null}
+              />
             ))}
           </div>
         </section>
@@ -152,8 +161,8 @@ export default function Home() {
       {recent.length > 0 && (
         <section>
           <div className="section-label-row">
-            <div className="section-label">Recent Results</div>
-            <Link to="/matches" className="see-all">View all →</Link>
+            <div className="section-label">Résultats récents</div>
+            <Link to="/matches" className="see-all">Voir tout →</Link>
           </div>
           <div className="matches-grid">
             {recent.map(m => <MatchCard key={m.id} match={m} pred={predictions[m.id]} open={false} />)}
@@ -164,7 +173,15 @@ export default function Home() {
       {loading && matches.length === 0 && (
         <div className="loading-screen" style={{minHeight:200}}>
           <div className="spinner"/>
-          <span style={{color:'var(--text2)',fontSize:14}}>Loading matches…</span>
+          <span style={{color:'var(--text2)',fontSize:14,fontWeight:500}}>Chargement des matchs...</span>
+        </div>
+      )}
+
+      {!loading && matches.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">⚽</div>
+          <p style={{fontSize:15,fontWeight:600}}>Aucun match disponible pour le moment</p>
+          <p style={{fontSize:13}}>Les données sont synchronisées automatiquement depuis l'API</p>
         </div>
       )}
     </div>
