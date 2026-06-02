@@ -17,15 +17,18 @@ export default function Layout() {
         <div className="header-brand">
           <span className="header-logo">⚽</span>
           <span className="display header-title">GoalGenius</span>
-          <span className="header-season">World Cup 2026</span>
+          <span className="header-season">Coupe du Monde 2026</span>
         </div>
 
         <nav className="header-nav">
           <NavLink to="/matches" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            Matches
+            Matchs
           </NavLink>
           <NavLink to="/leaderboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            Leaderboard
+            Classement
+          </NavLink>
+          <NavLink to="/standings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+            Groupes
           </NavLink>
           {profile?.role === 'admin' && (
             <NavLink to="/admin" className={({ isActive }) => `nav-link nav-link-admin ${isActive ? 'active' : ''}`}>
@@ -37,7 +40,7 @@ export default function Layout() {
         <div className="header-user">
           <div className="user-avatar">{profile?.full_name?.[0] ?? '?'}</div>
           <span className="user-name">{profile?.full_name}</span>
-          <button className="btn btn-ghost btn-sm" onClick={handleSignOut}>Sign out</button>
+          <button className="btn btn-ghost btn-sm" onClick={handleSignOut}>Déconnexion</button>
         </div>
       </header>
 

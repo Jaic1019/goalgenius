@@ -13,25 +13,17 @@ export default function Leaderboard() {
 
   async function loadLeaderboard() {
     setLoading(true)
-    // Fetch all predictions with user profile and match result
     const { data: preds } = await supabase
       .from('predictions')
-      .select(`
-        user_id,
-        home_score,
-        away_score,
-        match:matches(home_score, away_score, status),
-        profile:profiles(full_name)
-      `)
+      .select(`user_id, home_score, away_score, match:matches(home_score, away_score, status), profile:profiles(full_name)`)
 
     if (!preds) { setLoading(false); return }
 
-    // Aggregate points per user
     const userMap = {}
     for (const p of preds) {
       const uid = p.user_id
-      const name = p.profile?.full_name ?? 'Unknown'
-      if (!userMap[uid]) userMap[uid] = { uid, name, points: 0, predictions: 0, exact: 0 }
+      const name = p.profile?.full_name ?? 'Inconnu'
+      if (!userMap[uid]) userMap[uid] = { uid, name, points: 0, predictions: 0, exact: 0, correct: 0 }
       userMap[uid].predictions++
       if (p.match?.status === 'finished' && p.match.home_score !== null) {
         const pts = calcPoints(
@@ -40,6 +32,7 @@ export default function Leaderboard() {
         )
         userMap[uid].points += pts ?? 0
         if (pts === 10) userMap[uid].exact++
+        if (pts >= 5) userMap[uid].correct++
       }
     }
 
@@ -49,24 +42,21 @@ export default function Leaderboard() {
   }
 
   const MEDAL = ['🥇', '🥈', '🥉']
+  const finishedMatches = board.reduce((acc, u) => Math.max(acc, u.predictions), 0)
 
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>
 
   return (
     <div className="lb-page fade-up">
       <div className="page-header">
-        <h1 className="display page-title">Leaderboard</h1>
-        <p className="page-sub">Rankings update automatically as results come in.</p>
+        <h1 className="display page-title">Classement</h1>
+        <p className="page-sub">Mis à jour automatiquement après chaque résultat.</p>
       </div>
 
       {board.length === 0 ? (
-        <div className="empty-state">
-          <div style={{ fontSize: 40 }}>🏆</div>
-          <p>No predictions yet — be the first to predict!</p>
-        </div>
+        <div className="empty-state"><div style={{ fontSize: 40 }}>🏆</div><p>Aucun pronostic pour l'instant — soyez le premier !</p></div>
       ) : (
         <>
-          {/* Top 3 podium */}
           {board.length >= 3 && (
             <div className="podium">
               {[board[1], board[0], board[2]].map((entry, i) => {
@@ -85,26 +75,25 @@ export default function Leaderboard() {
             </div>
           )}
 
-          {/* Full table */}
           <div className="lb-table">
             <div className="lb-thead">
               <span>#</span>
-              <span>Player</span>
-              <span className="align-right">Predictions</span>
-              <span className="align-right">Exact</span>
+              <span>Joueur</span>
+              <span className="align-right">Pronostics</span>
+              <span className="align-right">Exacts 🎯</span>
+              <span className="align-right">Bons vainqueurs</span>
               <span className="align-right">Points</span>
             </div>
             {board.map((entry, i) => (
               <div key={entry.uid} className={`lb-row ${entry.uid === user.id ? 'lb-row-me' : ''}`}>
-                <span className="lb-rank">
-                  {i < 3 ? MEDAL[i] : <span className="rank-num">{i + 1}</span>}
-                </span>
+                <span className="lb-rank">{i < 3 ? MEDAL[i] : <span className="rank-num">{i + 1}</span>}</span>
                 <span className="lb-name">
                   {entry.name}
-                  {entry.uid === user.id && <span className="you-badge">You</span>}
+                  {entry.uid === user.id && <span className="you-badge">Vous</span>}
                 </span>
                 <span className="lb-cell align-right">{entry.predictions}</span>
-                <span className="lb-cell align-right">{entry.exact > 0 ? `${entry.exact} 🎯` : '—'}</span>
+                <span className="lb-cell align-right">{entry.exact || '—'}</span>
+                <span className="lb-cell align-right">{entry.correct || '—'}</span>
                 <span className="lb-pts">{entry.points}</span>
               </div>
             ))}

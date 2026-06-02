@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './lib/AuthContext'
 import Login from './pages/Login'
 import Matches from './pages/Matches'
 import Leaderboard from './pages/Leaderboard'
+import Standings from './pages/Standings'
 import Admin from './pages/Admin'
 import Layout from './components/Layout'
 import './index.css'
@@ -26,6 +27,7 @@ function AppRoutes() {
         <Route index element={<Navigate to="/matches" replace />} />
         <Route path="matches" element={<Matches />} />
         <Route path="leaderboard" element={<Leaderboard />} />
+        <Route path="standings" element={<Standings />} />
         <Route path="admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
       </Route>
     </Routes>
