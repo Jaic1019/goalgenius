@@ -1,6 +1,12 @@
 /**
  * MOTEUR DE DONNÉES HYBRIDE — GoalGenius v6
- * DB = source de vérité, API = enrichissement live via Edge Function
+ * Structure API worldcup26.ir confirmée :
+ * - date: local_date
+ * - teams: home_team_name_en, away_team_name_en
+ * - scores: home_score, away_score
+ * - status: finished (boolean)
+ * - group: group
+ * - stadium: stadium_id
  */
 import { supabase } from './supabase'
 
@@ -8,15 +14,64 @@ const CET_OFFSET = 2
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-matches`
 const EDGE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-function toCET(dateStr, timeStr) {
-  if (!dateStr) return { date: null, time: '18:00' }
+// Flag emoji lookup by team name
+const FLAGS = {
+  'Mexico':'🇲🇽','South Africa':'🇿🇦','South Korea':'🇰🇷','Czech Republic':'🇨🇿','Czechia':'🇨🇿',
+  'Canada':'🇨🇦','Bosnia and Herzegovina':'🇧🇦','Qatar':'🇶🇦','Switzerland':'🇨🇭',
+  'Brazil':'🇧🇷','Morocco':'🇲🇦','Haiti':'🇭🇹','Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  'United States':'🇺🇸','USA':'🇺🇸','Paraguay':'🇵🇾','Australia':'🇦🇺','Türkiye':'🇹🇷','Turkey':'🇹🇷',
+  'Germany':'🇩🇪','Curaçao':'🇨🇼','Ivory Coast':'🇨🇮',"Côte d'Ivoire":'🇨🇮','Ecuador':'🇪🇨',
+  'Netherlands':'🇳🇱','Japan':'🇯🇵','Tunisia':'🇹🇳','Sweden':'🇸🇪',
+  'Belgium':'🇧🇪','Egypt':'🇪🇬','Iran':'🇮🇷','New Zealand':'🇳🇿',
+  'Spain':'🇪🇸','Cape Verde':'🇨🇻','Saudi Arabia':'🇸🇦','Uruguay':'🇺🇾',
+  'France':'🇫🇷','Senegal':'🇸🇳','Iraq':'🇮🇶','Norway':'🇳🇴',
+  'Argentina':'🇦🇷','Algeria':'🇩🇿','Austria':'🇦🇹','Jordan':'🇯🇴',
+  'Portugal':'🇵🇹','DR Congo':'🇨🇩','Congo DR':'🇨🇩','Uzbekistan':'🇺🇿','Colombia':'🇨🇴',
+  'England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Croatia':'🇭🇷','Ghana':'🇬🇭','Panama':'🇵🇦',
+  'Wales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','Serbia':'🇷🇸','Poland':'🇵🇱','Cameroon':'🇨🇲',
+  'Denmark':'🇩🇰','Ukraine':'🇺🇦','Romania':'🇷🇴','Hungary':'🇭🇺',
+}
+
+function getFlag(name) {
+  if (!name) return ''
+  if (FLAGS[name]) return FLAGS[name]
+  // partial match
+  for (const [k,v] of Object.entries(FLAGS)) {
+    if (name.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(name.toLowerCase())) return v
+  }
+  return '🏳️'
+}
+
+function toCET(localDate, timeStr) {
+  if (!localDate) return { date: null, time: '18:00' }
   try {
-    const clean = (timeStr || '00:00').toString().slice(0, 5)
-    const dt = new Date(`${dateStr}T${clean}:00Z`)
-    if (isNaN(dt)) return { date: dateStr, time: clean }
-    dt.setHours(dt.getHours() + CET_OFFSET)
-    return { date: dt.toISOString().slice(0, 10), time: dt.toISOString().slice(11, 16) }
-  } catch { return { date: dateStr, time: '18:00' } }
+    // local_date is already in local time — just parse it
+    // Format could be: "2026-06-11" or "2026-06-11T13:00:00" or "06/11/2026"
+    let dateStr = String(localDate)
+    let timeOut = timeStr || '18:00'
+
+    if (dateStr.includes('T')) {
+      // ISO format with time
+      const dt = new Date(dateStr)
+      if (!isNaN(dt)) {
+        // Convert UTC to CET
+        const cet = new Date(dt.getTime() + CET_OFFSET * 3600000)
+        return { date: cet.toISOString().slice(0,10), time: cet.toISOString().slice(11,16) }
+      }
+    }
+
+    // Plain date
+    const plain = dateStr.slice(0,10)
+    if (plain.match(/^\d{4}-\d{2}-\d{2}$/)) return { date: plain, time: timeOut }
+
+    // MM/DD/YYYY
+    if (plain.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      const [m,d,y] = plain.split('/')
+      return { date: `${y}-${m}-${d}`, time: timeOut }
+    }
+
+    return { date: plain, time: timeOut }
+  } catch { return { date: null, time: '18:00' } }
 }
 
 async function edgeFetch(endpoint = '/get/games') {
@@ -26,8 +81,7 @@ async function edgeFetch(endpoint = '/get/games') {
       headers: { 'Authorization': `Bearer ${EDGE_KEY}`, 'Content-Type': 'application/json' },
     })
     if (!res.ok) throw new Error(`Edge HTTP ${res.status}`)
-    const json = await res.json()
-    return { data: json, ok: true }
+    return { data: await res.json(), ok: true }
   } catch (e) {
     console.warn('[API] edgeFetch failed:', e.message)
     return { data: null, ok: false }
@@ -37,134 +91,80 @@ async function edgeFetch(endpoint = '/get/games') {
 function extractMatches(data) {
   if (!data) return []
   if (Array.isArray(data)) return data
-  const keys = ['games','matches','data','results','fixtures','events','items','list']
-  for (const k of keys) {
-    if (Array.isArray(data[k]) && data[k].length > 0) {
-      console.log(`[API] Found ${data[k].length} items under key: "${k}"`)
-      return data[k]
-    }
+  for (const k of ['games','matches','data','results','fixtures','events','items','list']) {
+    if (Array.isArray(data[k]) && data[k].length > 0) return data[k]
   }
   const vals = Object.values(data)
-  if (vals.length > 0 && Array.isArray(vals[0]) && vals[0].length > 0) return vals[0]
+  if (vals.length > 0 && Array.isArray(vals[0])) return vals[0]
   return []
-}
-
-// Deep search any object for a value by multiple possible keys
-function deepGet(obj, ...keys) {
-  for (const k of keys) {
-    if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k]
-    // Try case-insensitive
-    const lk = k.toLowerCase()
-    for (const ok of Object.keys(obj)) {
-      if (ok.toLowerCase() === lk && obj[ok] !== undefined && obj[ok] !== null && obj[ok] !== '') return obj[ok]
-    }
-  }
-  return null
 }
 
 function parseMatch(m) {
   if (!m || typeof m !== 'object') return null
 
-  // Log the first match to understand structure
-  if (!parseMatch._logged) {
-    console.log('[API] Sample match object:', JSON.stringify(m).slice(0, 500))
-    parseMatch._logged = true
+  // ── Date & Time ──
+  // Keys confirmed: local_date, persian_date, matchday
+  const rawDate = m.local_date || m.date || m.match_date || m.Date || ''
+  const rawTime = m.time || m.match_time || m.Time || m.kickoff || ''
+  const { date, time } = toCET(rawDate, rawTime)
+  if (!date) return null
+
+  // ── Team names ──
+  // Keys confirmed: home_team_name_en, away_team_name_en
+  const homeName = (m.home_team_name_en || m.home_team_name || m.home_name ||
+    (m.home_team && typeof m.home_team === 'object' ? m.home_team.name_en || m.home_team.name : m.home_team) ||
+    m.homeTeam || m.home || '').toString().trim()
+
+  const awayName = (m.away_team_name_en || m.away_team_name || m.away_name ||
+    (m.away_team && typeof m.away_team === 'object' ? m.away_team.name_en || m.away_team.name : m.away_team) ||
+    m.awayTeam || m.away || '').toString().trim()
+
+  if (!homeName || !awayName) return null
+
+  // ── Status ──
+  // Keys confirmed: finished (boolean), type, time_elapsed
+  let status = 'upcoming'
+  if (m.finished === true || m.finished === 1 || m.finished === '1' || m.finished === 'true') {
+    status = 'finished'
+  } else if (m.time_elapsed && Number(m.time_elapsed) > 0 && !m.finished) {
+    status = 'live'
+  } else if (m.status) {
+    const s = String(m.status).toLowerCase()
+    if (s.includes('live') || s.includes('progress')) status = 'live'
+    else if (s.includes('finish') || s.includes('ft') || s.includes('end')) status = 'finished'
   }
 
-  // Extract date - try everything
-  const rawDate = deepGet(m, 'date','match_date','matchDate','Date','game_date','scheduled_date','kickoff_date') ||
-    (m.schedule && deepGet(m.schedule, 'date','time','kickoff')) || ''
+  // ── Scores ──
+  const homeScore = m.home_score !== null && m.home_score !== undefined && m.home_score !== ''
+    ? Number(m.home_score) : null
+  const awayScore = m.away_score !== null && m.away_score !== undefined && m.away_score !== ''
+    ? Number(m.away_score) : null
 
-  // Extract time
-  const rawTime = deepGet(m, 'time','match_time','matchTime','Time','kickoff','kickoff_time','start_time') ||
-    (m.schedule && deepGet(m.schedule, 'time','kickoff')) || '00:00'
+  // ── Group ──
+  const groupStage = (m.group || m.Group || m.round || m.type || m.stage || '').toString()
 
-  const { date, time } = toCET(String(rawDate).slice(0,10), String(rawTime).slice(0,5))
-  if (!date) { console.warn('[Parse] No date for match:', Object.keys(m)); return null }
+  // ── Stadium ──
+  const stadium = m.stadium_id ? `Stadium ${m.stadium_id}` : ''
+  const city = ''
 
-  // Status
-  const rawStatus = String(deepGet(m, 'status','Status','state','State','match_status') || 'upcoming').toLowerCase()
-  const status = rawStatus.includes('live') || rawStatus.includes('progress') || rawStatus.includes('cours') ? 'live'
-    : rawStatus.includes('finish') || rawStatus.includes('ft') || rawStatus.includes('end') || rawStatus.includes('complet') || rawStatus.includes('played') ? 'finished'
-    : 'upcoming'
-
-  // Teams - handle nested objects aggressively
-  let homeName = '', awayName = '', homeFlag = '', awayFlag = ''
-
-  // Try nested team objects first
-  const homeObj = m.home_team || m.homeTeam || m.home || m.team_home || m.local || null
-  const awayObj = m.away_team || m.awayTeam || m.away || m.team_away || m.visitor || null
-
-  if (homeObj && typeof homeObj === 'object') {
-    homeName = deepGet(homeObj, 'name','Name','team_name','fullName','title') || ''
-    homeFlag = deepGet(homeObj, 'flag','logo','image','icon','crest','badge','photo') || ''
-  } else if (typeof homeObj === 'string') {
-    homeName = homeObj
-  }
-
-  if (awayObj && typeof awayObj === 'object') {
-    awayName = deepGet(awayObj, 'name','Name','team_name','fullName','title') || ''
-    awayFlag = deepGet(awayObj, 'flag','logo','image','icon','crest','badge','photo') || ''
-  } else if (typeof awayObj === 'string') {
-    awayName = awayObj
-  }
-
-  // Fallback to flat fields
-  if (!homeName) homeName = String(deepGet(m, 'home_name','home_team_name','team1','team1_name','homeTeamName') || '')
-  if (!awayName) awayName = String(deepGet(m, 'away_name','away_team_name','team2','team2_name','awayTeamName') || '')
-  if (!homeFlag) homeFlag = String(deepGet(m, 'home_flag','home_logo','home_image','team1_flag') || '')
-  if (!awayFlag) awayFlag = String(deepGet(m, 'away_flag','away_logo','away_image','team2_flag') || '')
-
-  if (!homeName || !awayName) {
-    console.warn('[Parse] Missing team names. Keys:', Object.keys(m), 'homeObj:', homeObj, 'awayObj:', awayObj)
-    return null
-  }
-
-  // Scores
-  let homeScore = null, awayScore = null
-  const scoreObj = m.score || m.Score || m.result || m.Result || null
-  if (scoreObj && typeof scoreObj === 'object') {
-    homeScore = deepGet(scoreObj, 'home','Home','team1','ft_home','fulltime_home') 
-    awayScore = deepGet(scoreObj, 'away','Away','team2','ft_away','fulltime_away')
-  }
-  if (homeScore === null) homeScore = deepGet(m, 'home_score','homeScore','score_home','goals_home','team1_score')
-  if (awayScore === null) awayScore = deepGet(m, 'away_score','awayScore','score_away','goals_away','team2_score')
-  if (typeof homeScore === 'string' && homeScore.includes('-')) {
-    [homeScore, awayScore] = homeScore.split('-').map(Number)
-  }
-  homeScore = homeScore !== null && homeScore !== '' ? Number(homeScore) : null
-  awayScore = awayScore !== null && awayScore !== '' ? Number(awayScore) : null
-  if (!isNaN(homeScore) && !isNaN(awayScore) && homeScore !== null) {} else { homeScore = null; awayScore = null }
-
-  // Group/stage
-  const groupStage = String(deepGet(m, 'group','Group','round','Round','stage','Stage','phase','group_stage','group_name','round_name') || '')
-
-  // Stadium/city
-  const stadiumObj = m.stadium || m.Stadium || m.venue || m.Venue || null
-  const stadium = stadiumObj && typeof stadiumObj === 'object'
-    ? deepGet(stadiumObj, 'name','Name','stadium_name') || ''
-    : String(stadiumObj || deepGet(m, 'stadium_name','venue_name','ground') || '')
-  const city = stadiumObj && typeof stadiumObj === 'object'
-    ? deepGet(stadiumObj, 'city','City','location') || ''
-    : String(deepGet(m, 'city','City','location') || '')
-
-  const apiId = String(deepGet(m, 'id','_id','Id','match_id','game_id','fixture_id') || '')
+  // ── API ID ──
+  const apiId = String(m.id || m._id || '')
 
   return {
     api_id:      apiId,
-    home_team:   homeName.trim(),
-    away_team:   awayName.trim(),
-    home_flag:   homeFlag.trim(),
-    away_flag:   awayFlag.trim(),
+    home_team:   homeName,
+    away_team:   awayName,
+    home_flag:   getFlag(homeName),
+    away_flag:   getFlag(awayName),
     home_score:  homeScore,
     away_score:  awayScore,
     match_date:  date,
     match_time:  time + ':00',
     group_stage: groupStage,
-    stadium:     stadium,
-    city:        city,
+    stadium,
+    city,
     status,
-    matchday:    Number(deepGet(m, 'matchday','round_number','week','day','match_day') || 1) || 1,
+    matchday:    Number(m.matchday || 1) || 1,
   }
 }
 
@@ -173,33 +173,29 @@ function parseMatch(m) {
 export async function bootstrapFromAPI() {
   console.log('[Bootstrap] DB vide — import depuis API...')
   const { data, ok } = await edgeFetch('/get/games')
-
-  if (!ok || !data) {
-    console.warn('[Bootstrap] API indisponible')
-    return { ok: false, count: 0 }
-  }
+  if (!ok || !data) { console.warn('[Bootstrap] API indisponible'); return { ok: false, count: 0 } }
 
   const arr = extractMatches(data)
-  console.log(`[Bootstrap] ${arr.length} éléments bruts reçus`)
+  console.log(`[Bootstrap] ${arr.length} matchs bruts reçus`)
   if (!arr.length) return { ok: true, count: 0 }
 
-  parseMatch._logged = false // reset log flag
+  // Log first match for debugging
+  console.log('[Bootstrap] Premier match brut:', JSON.stringify(arr[0]).slice(0, 400))
 
   const rows = arr.map(parseMatch).filter(r => r && r.home_team && r.away_team && r.match_date)
-  console.log(`[Bootstrap] ${rows.length} matchs valides sur ${arr.length}`)
+  console.log(`[Bootstrap] ${rows.length} matchs valides`)
 
   if (rows.length === 0) {
-    console.error('[Bootstrap] Impossible de parser les matchs. Voir le log "Sample match object" ci-dessus.')
+    console.error('[Bootstrap] 0 matchs valides. Premier élément brut:', JSON.stringify(arr[0]))
     return { ok: true, count: 0 }
   }
 
   let inserted = 0
-  const BATCH = 20
-  for (let i = 0; i < rows.length; i += BATCH) {
+  for (let i = 0; i < rows.length; i += 20) {
     const { error } = await supabase.from('matches')
-      .upsert(rows.slice(i, i + BATCH), { onConflict: 'api_id', ignoreDuplicates: false })
+      .upsert(rows.slice(i, i + 20), { onConflict: 'api_id', ignoreDuplicates: false })
     if (error) console.error('[Bootstrap] Erreur batch:', error.message)
-    else inserted += Math.min(BATCH, rows.length - i)
+    else inserted += Math.min(20, rows.length - i)
   }
 
   console.log(`[Bootstrap] ✅ ${inserted} matchs insérés`)
@@ -209,10 +205,8 @@ export async function bootstrapFromAPI() {
 // ── DB reads ──────────────────────────────────────────────────
 
 export async function loadMatchesFromDB() {
-  const { data, error } = await supabase
-    .from('matches').select('*')
-    .order('match_date', { ascending: true })
-    .order('match_time', { ascending: true })
+  const { data, error } = await supabase.from('matches').select('*')
+    .order('match_date', { ascending: true }).order('match_time', { ascending: true })
   if (error) console.error('[DB] loadMatches:', error.message)
   return data || []
 }
@@ -231,7 +225,6 @@ export async function syncFromAPI() {
   const dbMap = {}
   for (const m of (dbRows || [])) if (m.api_id) dbMap[m.api_id] = m
 
-  parseMatch._logged = true // suppress logging during sync
   const toUpsert = []
   for (const raw of arr) {
     const m = parseMatch(raw)
