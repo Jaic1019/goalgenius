@@ -1,102 +1,150 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import { calcPoints } from '../lib/scoring'
+import { useMatches } from '../hooks/useMatches'
+import { calcPoints, SCORING_RULES } from '../lib/scoring'
 import './Leaderboard.css'
 
 export default function Leaderboard() {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
+  const { matches } = useMatches()
   const [board, setBoard] = useState([])
   const [loading, setLoading] = useState(true)
+  const [view, setView] = useState('all') // all | group | stage
 
-  useEffect(() => { loadLeaderboard() }, [])
+  useEffect(() => {
+    if (matches.length > 0) buildBoard()
+  }, [matches])
 
-  async function loadLeaderboard() {
-    setLoading(true)
-    const { data: preds } = await supabase
+  async function buildBoard() {
+    const { data } = await supabase
       .from('predictions')
-      .select(`user_id, home_score, away_score, match:matches(home_score, away_score, status), profile:profiles(full_name)`)
+      .select('user_id, match_id, home_score, away_score, profile:profiles(full_name, role)')
 
-    if (!preds) { setLoading(false); return }
+    if (!data) { setLoading(false); return }
+
+    // Build match result map from API/DB matches
+    const matchMap = {}
+    for (const m of matches) matchMap[m.id] = m
 
     const userMap = {}
-    for (const p of preds) {
+    for (const p of data) {
       const uid = p.user_id
-      const name = p.profile?.full_name ?? 'Inconnu'
-      if (!userMap[uid]) userMap[uid] = { uid, name, points: 0, predictions: 0, exact: 0, correct: 0 }
-      userMap[uid].predictions++
-      if (p.match?.status === 'finished' && p.match.home_score !== null) {
+      const name = p.profile?.full_name ?? 'Unknown'
+      const role = p.profile?.role ?? 'employee'
+      if (!userMap[uid]) userMap[uid] = { uid, name, role, points:0, preds:0, perfect:0, correct:0, close:0 }
+      userMap[uid].preds++
+
+      const match = matchMap[p.match_id]
+      if (match && match.status === 'finished' && match.home_score != null) {
         const pts = calcPoints(
           { home_score: p.home_score, away_score: p.away_score },
-          { home_score: p.match.home_score, away_score: p.match.away_score }
+          { home_score: match.home_score, away_score: match.away_score }
         )
         userMap[uid].points += pts ?? 0
-        if (pts === 10) userMap[uid].exact++
-        if (pts >= 5) userMap[uid].correct++
+        if (pts === 10) userMap[uid].perfect++
+        if (pts >= 5)   userMap[uid].correct++
+        if (pts === 3)  userMap[uid].close++
       }
     }
 
-    const sorted = Object.values(userMap).sort((a, b) => b.points - a.points || b.exact - a.exact)
+    // Admins can see everyone; employees only see employees by default
+    const sorted = Object.values(userMap)
+      .filter(e => isAdmin ? true : e.role !== 'admin')
+      .sort((a,b) => b.points - a.points || b.perfect - a.perfect)
+
     setBoard(sorted)
     setLoading(false)
   }
 
-  const MEDAL = ['🥇', '🥈', '🥉']
-  const finishedMatches = board.reduce((acc, u) => Math.max(acc, u.predictions), 0)
+  const M = ['🥇','🥈','🥉']
+  const myRank = board.findIndex(e => e.uid === user?.id) + 1
+  const myEntry = board.find(e => e.uid === user?.id)
 
-  if (loading) return <div className="loading-screen"><div className="spinner" /></div>
+  if (loading) return <div className="loading-screen"><div className="spinner"/></div>
 
   return (
-    <div className="lb-page fade-up">
+    <div className="lb-page page fade-up">
       <div className="page-header">
-        <h1 className="display page-title">Classement</h1>
-        <p className="page-sub">Mis à jour automatiquement après chaque résultat.</p>
+        <h1 className="page-title">Leader<span>board</span></h1>
+        <p className="page-sub">
+          {board.length} participants · Auto-updated after each result
+          {myEntry && ` · You are ranked #${myRank} with ${myEntry.points} pts`}
+        </p>
       </div>
 
+      {/* My position banner */}
+      {myEntry && (
+        <div className="my-position-card">
+          <div className="mp-rank display">#{myRank}</div>
+          <div className="mp-info">
+            <div className="mp-name">{myEntry.name}</div>
+            <div className="mp-stats">
+              {myEntry.perfect} perfect · {myEntry.correct} correct · {myEntry.close} close
+            </div>
+          </div>
+          <div className="mp-pts display">{myEntry.points}<span className="mp-pts-l">pts</span></div>
+        </div>
+      )}
+
       {board.length === 0 ? (
-        <div className="empty-state"><div style={{ fontSize: 40 }}>🏆</div><p>Aucun pronostic pour l'instant — soyez le premier !</p></div>
+        <div className="empty-state"><div className="empty-icon">🏆</div><p>No predictions yet — be the first!</p></div>
       ) : (
         <>
+          {/* Podium top 3 */}
           {board.length >= 3 && (
             <div className="podium">
-              {[board[1], board[0], board[2]].map((entry, i) => {
-                const rank = i === 1 ? 0 : i === 0 ? 1 : 2
-                return (
-                  <div key={entry.uid} className={`podium-slot rank-${rank}`}>
-                    <div className="podium-medal">{MEDAL[rank]}</div>
-                    <div className="podium-avatar">{entry.name[0]}</div>
-                    <div className="podium-name">{entry.name.split(' ')[0]}</div>
-                    <div className="podium-pts display">{entry.points}</div>
-                    <div className="podium-pts-label">pts</div>
-                    <div className={`podium-bar rank-${rank}`} />
-                  </div>
-                )
-              })}
+              {[{e:board[1],r:1},{e:board[0],r:0},{e:board[2],r:2}].map(({e,r}) => (
+                <div key={e.uid} className={`pod rank${r}`}>
+                  <div className="pod-medal">{M[r]}</div>
+                  <div className={`pod-av rank${r}`}>{e.name[0]}</div>
+                  <div className="pod-name">{e.name.split(' ')[0]}</div>
+                  <div className="pod-pts display">{e.points}</div>
+                  <div className="pod-sub">pts</div>
+                  <div className={`pod-bar rank${r}`}/>
+                </div>
+              ))}
             </div>
           )}
 
+          {/* Full table */}
           <div className="lb-table">
-            <div className="lb-thead">
+            <div className="lb-head">
               <span>#</span>
-              <span>Joueur</span>
-              <span className="align-right">Pronostics</span>
-              <span className="align-right">Exacts 🎯</span>
-              <span className="align-right">Bons vainqueurs</span>
-              <span className="align-right">Points</span>
+              <span>Collaborator</span>
+              <span className="ar">Predictions</span>
+              <span className="ar">Perfect 🎯</span>
+              <span className="ar">Correct</span>
+              <span className="ar pts-h">Points</span>
             </div>
-            {board.map((entry, i) => (
-              <div key={entry.uid} className={`lb-row ${entry.uid === user.id ? 'lb-row-me' : ''}`}>
-                <span className="lb-rank">{i < 3 ? MEDAL[i] : <span className="rank-num">{i + 1}</span>}</span>
+            {board.map((e,i) => (
+              <div key={e.uid} className={`lb-row ${e.uid===user?.id?'lb-me':''} ${i<3?'lb-top':''}`}>
+                <span className="lb-rank">{i<3?M[i]:<span className="lb-rn">{i+1}</span>}</span>
                 <span className="lb-name">
-                  {entry.name}
-                  {entry.uid === user.id && <span className="you-badge">Vous</span>}
+                  <span className="lb-av">{e.name[0]}</span>
+                  {e.name}
+                  {e.uid===user?.id && <span className="you-tag">You</span>}
+                  {isAdmin && e.role==='admin' && <span className="admin-tag-sm">Admin</span>}
                 </span>
-                <span className="lb-cell align-right">{entry.predictions}</span>
-                <span className="lb-cell align-right">{entry.exact || '—'}</span>
-                <span className="lb-cell align-right">{entry.correct || '—'}</span>
-                <span className="lb-pts">{entry.points}</span>
+                <span className="lb-cell ar">{e.preds}</span>
+                <span className="lb-cell ar">{e.perfect||'—'}</span>
+                <span className="lb-cell ar">{e.correct||'—'}</span>
+                <span className="lb-pts">{e.points}</span>
               </div>
             ))}
+          </div>
+
+          {/* Scoring reference */}
+          <div className="card scoring-ref">
+            <div className="sr-title">Scoring system</div>
+            <div className="sr-grid">
+              {SCORING_RULES.filter(r=>r.pts>0).map(r => (
+                <div key={r.pts} className="sr-item">
+                  <span className="sr-pts display">{r.pts}</span>
+                  <div><div className="sr-label">{r.label}</div><div className="sr-desc">{r.desc}</div></div>
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}

@@ -2,19 +2,22 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/AuthContext'
+import Layout from './components/Layout'
 import Login from './pages/Login'
+import Home from './pages/Home'
 import Matches from './pages/Matches'
 import Leaderboard from './pages/Leaderboard'
-import Standings from './pages/Standings'
+import Groups from './pages/Groups'
+import Teams from './pages/Teams'
+import Stadiums from './pages/Stadiums'
 import Admin from './pages/Admin'
-import Layout from './components/Layout'
 import './index.css'
 
-function ProtectedRoute({ children, adminOnly = false }) {
+function Guard({ children, adminOnly = false }) {
   const { user, profile, loading } = useAuth()
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>
   if (!user) return <Navigate to="/login" replace />
-  if (adminOnly && profile?.role !== 'admin') return <Navigate to="/matches" replace />
+  if (adminOnly && profile?.role !== 'admin') return <Navigate to="/" replace />
   return children
 }
 
@@ -22,13 +25,15 @@ function AppRoutes() {
   const { user } = useAuth()
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/matches" replace /> : <Login />} />
-      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route index element={<Navigate to="/matches" replace />} />
+      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/" element={<Guard><Layout /></Guard>}>
+        <Route index element={<Home />} />
         <Route path="matches" element={<Matches />} />
         <Route path="leaderboard" element={<Leaderboard />} />
-        <Route path="standings" element={<Standings />} />
-        <Route path="admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
+        <Route path="groups" element={<Groups />} />
+        <Route path="teams" element={<Teams />} />
+        <Route path="stadiums" element={<Stadiums />} />
+        <Route path="admin" element={<Guard adminOnly><Admin /></Guard>} />
       </Route>
     </Routes>
   )

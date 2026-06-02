@@ -13,49 +13,78 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault(); setLoading(true); setError('')
     const { error } = await signIn(email, password)
-    if (error) setError('Email ou mot de passe incorrect.')
+    if (error) setError('Invalid email or password. Please try again.')
     setLoading(false)
   }
 
   return (
     <div className="login-page">
-      <div className="login-bg-text display">GOAL</div>
-      <div className="login-card fade-up">
-        <div className="login-icon">⚽</div>
-        <h1 className="display login-title">GoalGenius</h1>
-        <p className="login-sub">Coupe du Monde 2026 · Pronostics d'entreprise</p>
-        {error && <div className="alert alert-error">{error}</div>}
+      <div className="login-glow" />
+
+      <div className="login-left fade-up">
+        <div className="login-brand">
+          <img src="/mca-logo.png" alt="MCA Technology" className="login-logo" />
+          <div className="login-tagline">Work With Fun ⚽</div>
+        </div>
+        <div className="login-sep" />
+        <h1 className="login-title display">Goal<span>Genius</span></h1>
+        <p className="login-sub">World Cup 2026 · Company Prediction Game</p>
+
+        {error && <div className="alert alert-error">⚠️ {error}</div>}
+
         <form onSubmit={handleSubmit} className="login-form">
           <div className="field">
-            <label>Email</label>
-            <input type="email" placeholder="prenom@email.com" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
+            <label>Email address</label>
+            <input type="email" placeholder="your@mca-technology.com"
+              value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
           </div>
           <div className="field">
-            <label>Mot de passe</label>
-            <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+            <label>Password</label>
+            <input type="password" placeholder="••••••••"
+              value={password} onChange={e => setPassword(e.target.value)} required />
           </div>
-          <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: '100%', marginTop: '4px' }}>
-            {loading ? 'Connexion…' : 'Entrer sur le terrain →'}
+          <button className="btn btn-primary" type="submit" disabled={loading}
+            style={{ width: '100%', padding: '12px', fontSize: '15px', marginTop: '4px' }}>
+            {loading ? 'Signing in…' : 'Enter the pitch →'}
           </button>
         </form>
-        <p className="login-hint">Contactez votre admin pour obtenir vos identifiants.</p>
+        <p className="login-hint">Contact your admin to receive login credentials</p>
       </div>
 
-      <div className="login-rules">
-        <div className="rules-title display">🏆 Règles de points</div>
-        <div className="rules-list">
-          {SCORING_RULES.filter(r => r.pts > 0).map(r => (
-            <div className="rule-row" key={r.pts + r.label}>
-              <div className="rule-pts-block">
-                <span className="rule-pts">{r.pts}</span>
-                <span className="rule-pts-label">pts</span>
+      <div className="login-right fade-up-2">
+        <div className="tournament-card">
+          <div className="tc-trophy">🏆</div>
+          <div className="tc-title display">FIFA World Cup <span>2026</span></div>
+          <div className="tc-dates">June 11 – July 19 · USA · Mexico · Canada</div>
+          <div className="tc-stats">
+            {[['48','Teams'],['104','Matches'],['12','Groups'],['16','Stadiums']].map(([n,l]) => (
+              <div key={l} className="tc-stat">
+                <span className="tc-n display">{n}</span>
+                <span className="tc-l">{l}</span>
               </div>
-              <div>
-                <div className="rule-label">{r.label}</div>
-                <div className="rule-desc">{r.desc}</div>
-              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rules-card">
+          <div className="rc-head">
+            <span>⚡</span>
+            <div>
+              <div className="rc-title alt">Scoring Rules</div>
+              <div className="rc-sub">How points are earned</div>
             </div>
-          ))}
+          </div>
+          <div className="rc-list">
+            {SCORING_RULES.filter(r => r.pts > 0).map(r => (
+              <div key={r.pts} className="rc-item">
+                <div className="rc-pts display">{r.pts}</div>
+                <div>
+                  <div className="rc-label">{r.label}</div>
+                  <div className="rc-desc">{r.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase } from './supabase'
 
-const AuthContext = createContext(null)
+const Ctx = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -14,40 +14,30 @@ export function AuthProvider({ children }) {
       if (session?.user) fetchProfile(session.user.id)
       else setLoading(false)
     })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
       else { setProfile(null); setLoading(false) }
     })
-
     return () => subscription.unsubscribe()
   }, [])
 
-  async function fetchProfile(userId) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
+  async function fetchProfile(id) {
+    const { data } = await supabase.from('profiles').select('*').eq('id', id).single()
     setProfile(data)
     setLoading(false)
   }
 
-  async function signIn(email, password) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error }
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut()
-  }
-
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut }}>
+    <Ctx.Provider value={{
+      user, profile, loading,
+      isAdmin: profile?.role === 'admin',
+      signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
+      signOut: () => supabase.auth.signOut(),
+    }}>
       {children}
-    </AuthContext.Provider>
+    </Ctx.Provider>
   )
 }
 
-export const useAuth = () => useContext(AuthContext)
+export const useAuth = () => useContext(Ctx)
