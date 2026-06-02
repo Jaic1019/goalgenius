@@ -47,14 +47,19 @@ export default function Home() {
 
   async function handleSave(match) {
     const d = drafts[match.id] || {}
-    const { ok, error } = await save(match.id, d.home, d.away, d.winner)
+    const { ok, error, isUpdate } = await save(match.id, d.home, d.away, d.winner)
     if (ok) {
-      setAlerts(a => ({ ...a, [match.id]: { type: 'success', msg: '✅ Pronostic enregistré !' } }))
+      const winnerLabel = d.winner === 'home' ? match.home_team : d.winner === 'away' ? match.away_team : 'Match nul'
+      const msg = isUpdate
+        ? `✏️ Pronostic mis à jour : ${d.home}–${d.away} · Vainqueur : ${winnerLabel}`
+        : `✅ Pronostic enregistré : ${d.home}–${d.away} · Vainqueur : ${winnerLabel} · Modifiable avant le coup d'envoi.`
+      setAlerts(a => ({ ...a, [match.id]: { type: 'success', msg } }))
       setDrafts(p => { const n = {...p}; delete n[match.id]; return n })
     } else {
-      setAlerts(a => ({ ...a, [match.id]: { type: 'error', msg: error } }))
+      setAlerts(a => ({ ...a, [match.id]: { type: 'error', msg: error || 'Erreur, réessayez.' } }))
     }
-    setTimeout(() => setAlerts(a => { const n = {...a}; delete n[match.id]; return n }), 4000)
+    if (ok) setTimeout(() => setAlerts(a => { const n = {...a}; delete n[match.id]; return n }), 8000)
+    else setTimeout(() => setAlerts(a => { const n = {...a}; delete n[match.id]; return n }), 5000)
   }
 
   return (
@@ -131,6 +136,7 @@ export default function Home() {
                 onDraft={(f,v) => setDraft(m.id,f,v)}
                 onSubmit={() => handleSave(m)} submitting={saving[m.id]}
                 error={alerts[m.id]?.type==='error' ? alerts[m.id].msg : null}
+                successMsg={alerts[m.id]?.type==='success' ? alerts[m.id].msg : null}
               />
             ))}
           </div>
@@ -151,6 +157,7 @@ export default function Home() {
                 onDraft={(f,v) => setDraft(m.id,f,v)}
                 onSubmit={() => handleSave(m)} submitting={saving[m.id]}
                 error={alerts[m.id]?.type==='error' ? alerts[m.id].msg : null}
+                successMsg={alerts[m.id]?.type==='success' ? alerts[m.id].msg : null}
               />
             ))}
           </div>

@@ -4,12 +4,10 @@ import './Groups.css'
 
 function Flag({ url, name }) {
   const [err, setErr] = useState(false)
-  if (!url || err || url === '🏳️') {
-    // Try emoji directly
-    if (url && url.length <= 4 && url !== '🏳️') return <span className="gflag-emoji">{url}</span>
-    return <span className="gfb">{name?.[0]}</span>
-  }
-  if (url.length <= 4) return <span className="gflag-emoji">{url}</span>
+  if (!url || url === '🏳️') return <span className="gfb">{name?.[0]}</span>
+  const isEmoji = !url.startsWith('http') && !url.includes('.') && !url.includes('/')
+  if (isEmoji) return <span className="gflag-emoji">{url}</span>
+  if (err) return <span className="gfb">{name?.[0]}</span>
   return <img src={url} alt={name} className="gflag" onError={() => setErr(true)} />
 }
 

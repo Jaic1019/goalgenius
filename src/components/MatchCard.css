@@ -1,78 +1,79 @@
-.mc { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; transition:border-color 0.2s, transform 0.15s; }
+.mc { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; transition:border-color 0.2s,transform 0.15s; }
 .mc:hover { border-color:var(--border2); transform:translateY(-1px); }
 .mc-live { border-color:rgba(255,85,85,0.35); }
+.mc-tbd { opacity:0.75; }
+.mc-finished { opacity:0.85; }
 .mc-live-bar { height:3px; background:linear-gradient(90deg,var(--red),rgba(255,85,85,0.3)); animation:livebar 2s ease infinite alternate; }
 @keyframes livebar { from{opacity:0.6;}to{opacity:1;} }
-.mc-finished { opacity:0.85; }
 
-/* Header */
 .mc-head { display:flex; align-items:center; gap:8px; padding:10px 14px 0; flex-wrap:wrap; }
 .mc-group { font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:0.06em; }
 .mc-time { font-size:11px; color:var(--text2); font-weight:500; margin-left:auto; }
 
-/* Teams */
 .mc-teams { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px; padding:14px; }
 .mc-team { display:flex; align-items:center; gap:10px; }
 .mc-team.away { justify-content:flex-end; flex-direction:row-reverse; }
 .mc-team-name { font-size:14px; font-weight:700; color:var(--text); }
 .flag-img { border-radius:4px; object-fit:cover; display:block; flex-shrink:0; }
 .flag-fb { border-radius:4px; background:var(--bg4); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--text2); flex-shrink:0; }
+.flag-emoji { flex-shrink:0; line-height:1; }
 .mc-center { text-align:center; }
 .mc-score-live { font-size:40px; color:var(--gold); line-height:1; display:flex; align-items:center; justify-content:center; gap:4px; }
 .mc-score-sep { font-size:24px; color:var(--text3); }
 .mc-vs { font-size:20px; color:var(--text3); letter-spacing:0.1em; }
 .mc-city { font-size:10px; color:var(--text3); margin-top:4px; font-weight:500; }
 
-/* Prediction area */
 .mc-prediction { border-top:1px solid var(--border2); background:var(--bg3); }
+
+/* TBD message */
+.mc-tbd-msg { padding:12px 14px; font-size:12px; color:var(--text3); font-style:italic; font-weight:500; }
+
+/* Open for prediction */
 .mc-pred-open { padding:14px; display:flex; flex-direction:column; gap:12px; }
 
-/* Section title */
-.pred-section-title { font-size:13px; font-weight:700; color:var(--text); letter-spacing:0.02em; }
+/* Context messages */
+.pred-context { font-size:12px; line-height:1.5; padding:8px 12px; border-radius:var(--radius-xs); }
+.pred-context-new { background:var(--mca-dim); color:var(--mca3); border:1px solid var(--mca-border); }
+.pred-context-update { background:var(--gold-dim); color:var(--gold); border:1px solid var(--gold-border); }
+
+.pred-section-label { font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:0.08em; }
 
 /* Score inputs */
 .pred-score-row { display:flex; align-items:center; justify-content:center; gap:12px; }
 .pred-score-block { display:flex; flex-direction:column; align-items:center; gap:6px; }
 .pred-score-label { font-size:11px; font-weight:700; color:var(--text2); text-align:center; text-transform:uppercase; letter-spacing:0.04em; max-width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.score-in { width:64px !important; text-align:center; font-size:24px; font-weight:700; color:var(--text); padding:8px 6px; border:2px solid var(--border2); background:var(--bg4); }
-.score-in:focus { border-color:var(--mca3); }
+.score-in { width:64px !important; text-align:center; font-size:24px; font-weight:700; color:var(--text); padding:8px 6px; border:2px solid var(--border2); background:var(--bg4); border-radius:var(--radius-sm); }
+.score-in:focus { border-color:var(--mca3); outline:none; }
 .pred-score-dash { font-size:28px; color:var(--text2); font-weight:300; padding-top:20px; }
 
 /* Winner buttons */
 .pred-winner-section { display:flex; flex-direction:column; gap:8px; }
-.pred-winner-label { font-size:12px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:0.06em; }
 .pred-winner-btns { display:flex; gap:6px; }
-.winner-btn {
-  flex:1; padding:8px 6px; border-radius:var(--radius-sm);
-  border:2px solid var(--border2); background:var(--bg4);
-  color:var(--text2); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600;
-  cursor:pointer; transition:all 0.15s; text-align:center;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
+.winner-btn { flex:1; padding:8px 6px; border-radius:var(--radius-sm); border:2px solid var(--border2); background:var(--bg4); color:var(--text2); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .winner-btn:hover { border-color:var(--mca3); color:var(--mca3); background:var(--mca-dim); }
 .winner-btn.selected { border-color:var(--mca3); background:var(--mca-dim); color:var(--mca3); }
-.winner-btn-draw.selected { border-color:var(--gold); background:var(--gold-dim); color:var(--gold); }
-.winner-btn.suggested { border-color:var(--border3); color:var(--text2); }
+.home-selected, .away-selected { border-color:var(--green) !important; background:var(--green-dim) !important; color:var(--green) !important; }
+.draw-selected { border-color:var(--gold) !important; background:var(--gold-dim) !important; color:var(--gold) !important; }
 
-/* Error */
+/* Error + Success */
 .pred-error { background:var(--red-dim); color:var(--red); border:1px solid var(--red-border); border-radius:var(--radius-xs); padding:8px 12px; font-size:13px; font-weight:600; }
+.pred-success { padding:12px 14px; background:var(--green-dim); color:var(--green); border-top:1px solid var(--green-border); font-size:13px; font-weight:600; line-height:1.6; }
 
-/* Submit */
+/* Submit button */
 .pred-submit { width:100%; padding:11px; font-size:14px; }
 
 /* Done state */
 .mc-pred-done { padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
-.pred-done-title { font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:0.06em; }
-.pred-done-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.pred-done-score { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--mca3); line-height:1; }
-.pred-done-winner { font-size:12px; color:var(--text2); }
-.pred-done-winner strong { color:var(--text); }
+.pred-done-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px; }
+.pred-done-title { font-size:12px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.06em; }
+.pred-done-edit-hint { font-size:11px; color:var(--text3); font-style:italic; }
+.pred-done-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.pred-done-scores { display:flex; flex-direction:column; gap:3px; }
+.pred-done-score { font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--mca3); line-height:1; }
+.pred-done-winner-lbl { font-size:12px; color:var(--text2); font-weight:600; }
+.pts-badge { font-size:13px !important; padding:4px 12px !important; }
 .pred-waiting { font-size:12px; color:var(--text3); font-style:italic; }
+.pred-points-explain { font-size:12px; color:var(--text2); font-weight:600; padding:6px 10px; background:rgba(0,0,0,0.2); border-radius:var(--radius-xs); }
 
 /* Closed state */
 .mc-pred-closed { padding:12px 14px; font-size:12px; color:var(--text3); font-style:italic; font-weight:500; }
-
-/* Clear visual separation between live score and prediction */
-.mc-prediction { border-top: 2px solid var(--border2); background: var(--bg3); }
-.pred-section-title { font-size:12px; font-weight:700; color:var(--mca3); text-transform:uppercase; letter-spacing:0.08em; background:var(--mca-dim); padding:4px 10px; border-radius:var(--radius-xs); display:inline-block; }
-.mc-score-label { font-size:10px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.08em; text-align:center; margin-bottom:4px; }

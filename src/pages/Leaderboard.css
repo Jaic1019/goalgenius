@@ -95,3 +95,8 @@
   .hist-row { grid-template-columns:1fr auto; }
   .hist-center { display:none; }
 }
+
+/* No prediction state */
+.hist-no-pred { opacity: 0.45; }
+.hist-no-pred-label { font-size: 11px; color: var(--text3); font-style: italic; }
+.hist-miss { border-color: var(--red-border) !important; background: var(--red-dim) !important; opacity: 0.7; }

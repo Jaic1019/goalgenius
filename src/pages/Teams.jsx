@@ -3,7 +3,10 @@ import { useMatches } from '../hooks/useMatches'
 import './Teams.css'
 function Flag({ url, name }) {
   const [err, setErr] = useState(false)
-  if (!url || err) return <div className="team-fb">{name?.[0]}</div>
+  if (!url || url === '🏳️') return <div className="team-fb">{name?.[0]}</div>
+  const isEmoji = !url.startsWith('http') && !url.includes('.') && !url.includes('/')
+  if (isEmoji) return <div className="team-fb" style={{fontSize:28}}>{url}</div>
+  if (err) return <div className="team-fb">{name?.[0]}</div>
   return <img src={url} alt={name} className="team-flag" onError={() => setErr(true)} />
 }
 export default function Teams() {

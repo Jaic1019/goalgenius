@@ -17,13 +17,11 @@ export default function Leaderboard() {
   useEffect(() => { if (matches.length > 0) buildBoard() }, [matches])
 
   async function buildBoard() {
-    // Fetch ALL registered users (employees)
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, full_name, role')
       .eq('role', 'employee')
 
-    // Fetch ALL predictions
     const { data: preds } = await supabase
       .from('predictions')
       .select('user_id, match_id, home_score, away_score, winner_pick')
@@ -37,20 +35,16 @@ export default function Leaderboard() {
     const matchMap = {}
     for (const m of matches) matchMap[m.id] = m
 
-    // Build prediction map per user
     const predsByUser = {}
     for (const p of (preds || [])) {
       if (!predsByUser[p.user_id]) predsByUser[p.user_id] = []
       predsByUser[p.user_id].push(p)
     }
 
-    // Calculate points for ALL registered users (0 if no predictions)
     const board = profiles.map(profile => {
-      const uid  = profile.id
-      const name = profile.full_name ?? 'Inconnu'
+      const uid = profile.id
       const userPreds = predsByUser[uid] || []
-
-      let points = 0, preds = userPreds.length, perfect = 0, correct = 0, partial = 0
+      let points = 0, predCount = userPreds.length, perfect = 0, correct = 0, partial = 0
 
       for (const p of userPreds) {
         const match = matchMap[p.match_id]
@@ -66,42 +60,44 @@ export default function Leaderboard() {
         }
       }
 
-      return { uid, name, points, preds, perfect, correct, partial }
+      return { uid, name: profile.full_name, points, predCount, perfect, correct, partial }
     })
 
-    // Sort by points descending
-    board.sort((a,b) => b.points - a.points || b.perfect - a.perfect || b.correct - a.correct || a.name.localeCompare(b.name))
-
+    board.sort((a,b) => b.points - a.points || b.perfect - a.perfect || b.correct - a.correct || a.name?.localeCompare(b.name))
     setBoard(board)
     setLoading(false)
   }
 
   function toggleExpand(uid) {
+    // User can only expand their own row
+    // Admin can expand any row
+    if (!isAdmin && uid !== user?.id) return
     setExpanded(expanded === uid ? null : uid)
   }
 
-  function canExpand(uid) {
-    return isAdmin || uid === user?.id
-  }
-
+  // Build history for a user — all matches sorted by date, show prediction if exists
   function getUserHistory(uid) {
-    const userPreds = allPreds.filter(p => p.user_id === uid)
-    const matchMap = {}
-    for (const m of matches) matchMap[m.id] = m
+    const predsByMatch = {}
+    for (const p of allPreds.filter(p => p.user_id === uid)) {
+      predsByMatch[p.match_id] = p
+    }
 
-    return userPreds.map(p => {
-      const match = matchMap[p.match_id]
-      if (!match) return null
-      const pts = match.status === 'finished' && match.home_score != null
-        ? calcPoints(
-            { home_score: p.home_score, away_score: p.away_score, winner_pick: p.winner_pick },
-            { home_score: match.home_score, away_score: match.away_score }
-          )
-        : null
-      return { match, pred: p, pts }
-    })
-    .filter(Boolean)
-    .sort((a,b) => a.match.match_date?.localeCompare(b.match.match_date))
+    // All valid matches sorted by date
+    return matches
+      .filter(m => m.home_team && m.away_team &&
+        m.home_team.toUpperCase() !== 'TBD' &&
+        m.away_team.toUpperCase() !== 'TBD')
+      .sort((a,b) => a.match_date?.localeCompare(b.match_date) || a.match_time?.localeCompare(b.match_time))
+      .map(match => {
+        const pred = predsByMatch[match.id] || null
+        const pts = pred && match.status === 'finished' && match.home_score != null
+          ? calcPoints(
+              { home_score: pred.home_score, away_score: pred.away_score, winner_pick: pred.winner_pick },
+              { home_score: match.home_score, away_score: match.away_score }
+            )
+          : null
+        return { match, pred, pts }
+      })
   }
 
   const MEDAL = ['🥇','🥈','🥉']
@@ -124,14 +120,14 @@ export default function Leaderboard() {
         </p>
       </div>
 
-      {/* My position */}
+      {/* My position banner */}
       {myEntry && (
         <div className="my-pos-card">
           <div className="mp-rank display">#{myRank}</div>
           <div className="mp-info">
             <div className="mp-name">{myEntry.name}</div>
             <div className="mp-stats">
-              {myEntry.preds} pronostic{myEntry.preds>1?'s':''} soumis
+              {myEntry.predCount} pronostic{myEntry.predCount>1?'s':''} soumis
               {finishedCount > 0 && ` · ${myEntry.perfect} parfait${myEntry.perfect>1?'s':''} · ${myEntry.correct} bon${myEntry.correct>1?'s':''}`}
             </div>
           </div>
@@ -165,7 +161,7 @@ export default function Leaderboard() {
             </div>
           )}
 
-          {/* Full ranking table */}
+          {/* Full table */}
           <div className="lb-table">
             <div className="lb-head">
               <span>#</span>
@@ -176,62 +172,97 @@ export default function Leaderboard() {
             </div>
 
             {board.map((e,i) => {
-              const isTop3    = i < 3
-              const isMe      = e.uid === user?.id
+              const isTop3     = i < 3
+              const isMe       = e.uid === user?.id
               const isExpanded = expanded === e.uid
-              const canSee    = canExpand(e.uid)
-              const history   = isExpanded ? getUserHistory(e.uid) : []
+              // Admin can expand all, user can only expand own
+              const canExpand  = isAdmin || isMe
+              const history    = isExpanded ? getUserHistory(e.uid) : []
 
               return (
                 <div key={e.uid}>
                   <div
                     className={`lb-row ${isMe?'lb-me':''} ${isTop3?`lb-top${i}`:''}`}
-                    onClick={() => canSee && toggleExpand(e.uid)}
-                    style={{ cursor: canSee ? 'pointer' : 'default' }}
+                    onClick={() => toggleExpand(e.uid)}
+                    style={{ cursor: canExpand ? 'pointer' : 'default' }}
                   >
                     <span className="lb-rank">
-                      {i < 3 ? <span className="lb-medal">{MEDAL[i]}</span> : <span className="lb-rn">{i+1}</span>}
+                      {i < 3
+                        ? <span className="lb-medal">{MEDAL[i]}</span>
+                        : <span className="lb-rn">{i+1}</span>
+                      }
                     </span>
                     <span className="lb-name">
                       <span className={`lb-av ${isTop3?RANK_CLASS[i]:''}`}>{e.name[0]}</span>
                       <span className="lb-fullname">{e.name}</span>
                       {isMe && <span className="you-tag">Vous</span>}
                     </span>
-                    <span className="lb-cell ar">{e.preds}</span>
+                    <span className="lb-cell ar">{e.predCount}</span>
                     <span className={`lb-pts ${isTop3?`top-pts${i}`:''}`}>{e.points}</span>
-                    <span className="lb-expand">{canSee ? (isExpanded?'▲':'▼') : ''}</span>
+                    <span className="lb-expand">
+                      {canExpand ? (isExpanded ? '▲' : '▼') : ''}
+                    </span>
                   </div>
 
-                  {/* Expanded history */}
-                  {isExpanded && canSee && (
+                  {/* Expanded history — all matches sorted by date */}
+                  {isExpanded && canExpand && (
                     <div className="history-panel">
                       <div className="hist-title">
-                        {isMe ? 'Vos pronostics' : `Pronostics de ${e.name.split(' ')[0]}`}
+                        {isMe
+                          ? `Vos pronostics (${history.filter(h=>h.pred).length}/${history.length} matchs)`
+                          : `Pronostics de ${e.name.split(' ')[0]} (${history.filter(h=>h.pred).length}/${history.length} matchs)`
+                        }
                       </div>
-                      {history.length === 0 && <p className="hist-empty">Aucun pronostic soumis.</p>}
+
+                      {history.length === 0 && <p className="hist-empty">Aucun match disponible.</p>}
+
                       {history.map((h,hi) => {
-                        const isPending = h.match.status !== 'finished'
-                        const winnerLabel = h.pred.winner_pick === 'home' ? h.match.home_team
+                        const isPending  = h.match.status !== 'finished'
+                        const hasPred    = !!h.pred
+                        const winnerLabel = !h.pred ? null
+                          : h.pred.winner_pick === 'home' ? h.match.home_team
                           : h.pred.winner_pick === 'away' ? h.match.away_team
                           : h.pred.winner_pick === 'draw' ? 'Match nul' : '—'
+
                         return (
                           <div key={hi} className={`hist-row
-                            ${isPending?'hist-pending':''}
-                            ${h.pts===10?'hist-perfect':h.pts===5?'hist-good':h.pts===3?'hist-partial':!isPending&&h.pts===0?'hist-miss':''}`}>
+                            ${!hasPred ? 'hist-no-pred' : ''}
+                            ${isPending && hasPred ? 'hist-pending' : ''}
+                            ${h.pts===10 ? 'hist-perfect' : h.pts===5 ? 'hist-good' : h.pts===3 ? 'hist-partial' : !isPending && hasPred && h.pts===0 ? 'hist-miss' : ''}`}>
+
+                            {/* Match info */}
                             <div className="hist-left">
-                              <span className="hist-match">{h.match.home_team} vs {h.match.away_team}</span>
-                              <span className="hist-group">{h.match.group_stage} · {h.match.match_date}</span>
+                              <span className="hist-match">
+                                {h.match.home_team} vs {h.match.away_team}
+                              </span>
+                              <span className="hist-group">
+                                {h.match.group_stage} · {h.match.match_date} · {h.match.match_time?.slice(0,5)} CET
+                              </span>
                             </div>
+
+                            {/* User prediction */}
                             <div className="hist-center">
-                              <span className="hist-pred-score">{h.pred.home_score}–{h.pred.away_score}</span>
-                              <span className="hist-pred-winner">🏆 {winnerLabel}</span>
+                              {hasPred ? (
+                                <>
+                                  <span className="hist-pred-score">{h.pred.home_score}–{h.pred.away_score}</span>
+                                  <span className="hist-pred-winner">🏆 {winnerLabel}</span>
+                                </>
+                              ) : (
+                                <span className="hist-no-pred-label">Pas de pronostic</span>
+                              )}
                             </div>
+
+                            {/* Result + points */}
                             <div className="hist-right">
-                              {isPending ? (
+                              {!hasPred ? (
+                                <span className="badge badge-gray">—</span>
+                              ) : isPending ? (
                                 <span className="badge badge-gray">⏳ À venir</span>
                               ) : (
                                 <>
-                                  <span className="hist-result">Résultat : {h.match.home_score}–{h.match.away_score}</span>
+                                  <span className="hist-result">
+                                    Résultat : {h.match.home_score}–{h.match.away_score}
+                                  </span>
                                   <span className={`badge ${h.pts===10?'badge-gold':h.pts===5?'badge-green':h.pts===3?'badge-blue':'badge-gray'}`}>
                                     {h.pts===10?'🏆 ':h.pts===5?'⭐ ':h.pts===3?'👍 ':''}{h.pts} pts
                                   </span>
