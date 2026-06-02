@@ -8,22 +8,28 @@ import './Leaderboard.css'
 export default function Leaderboard() {
   const { user, isAdmin } = useAuth()
   const { matches } = useMatches()
-  const [board, setBoard]         = useState([])
-  const [allPreds, setAllPreds]   = useState([]) // all predictions for expand
-  const [loading, setLoading]     = useState(true)
-  const [expanded, setExpanded]   = useState(null)
+  const [board, setBoard]       = useState([])
+  const [allPreds, setAllPreds] = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [expanded, setExpanded] = useState(null)
   const [finishedCount, setFinishedCount] = useState(0)
 
   useEffect(() => { if (matches.length > 0) buildBoard() }, [matches])
 
   async function buildBoard() {
-    // Fetch ALL predictions with profile info
-    const { data } = await supabase
-      .from('predictions')
-      .select('user_id, match_id, home_score, away_score, winner_pick, profile:profiles(full_name, role)')
+    // Fetch ALL registered users (employees)
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('role', 'employee')
 
-    if (!data) { setLoading(false); return }
-    setAllPreds(data)
+    // Fetch ALL predictions
+    const { data: preds } = await supabase
+      .from('predictions')
+      .select('user_id, match_id, home_score, away_score, winner_pick')
+
+    if (!profiles) { setLoading(false); return }
+    setAllPreds(preds || [])
 
     const finishedMatches = matches.filter(m => m.status === 'finished' && m.home_score != null)
     setFinishedCount(finishedMatches.length)
@@ -31,37 +37,42 @@ export default function Leaderboard() {
     const matchMap = {}
     for (const m of matches) matchMap[m.id] = m
 
-    // Build scores for ALL users — including 0 points
-    const userMap = {}
-
-    // First pass: register all users from predictions
-    for (const p of data) {
-      const uid  = p.user_id
-      const name = p.profile?.full_name ?? 'Inconnu'
-      const role = p.profile?.role ?? 'employee'
-      if (!userMap[uid]) userMap[uid] = { uid, name, role, points:0, preds:0, perfect:0, correct:0, partial:0 }
-      userMap[uid].preds++
-
-      // Only calculate points for finished matches
-      const match = matchMap[p.match_id]
-      if (match?.status === 'finished' && match.home_score != null) {
-        const pts = calcPoints(
-          { home_score: p.home_score, away_score: p.away_score, winner_pick: p.winner_pick },
-          { home_score: match.home_score, away_score: match.away_score }
-        )
-        userMap[uid].points += pts ?? 0
-        if (pts === 10) userMap[uid].perfect++
-        else if (pts === 5) userMap[uid].correct++
-        else if (pts === 3) userMap[uid].partial++
-      }
+    // Build prediction map per user
+    const predsByUser = {}
+    for (const p of (preds || [])) {
+      if (!predsByUser[p.user_id]) predsByUser[p.user_id] = []
+      predsByUser[p.user_id].push(p)
     }
 
-    // Sort by points descending, then by perfect scores
-    const sorted = Object.values(userMap)
-      .filter(e => e.role !== 'admin' || isAdmin)
-      .sort((a,b) => b.points - a.points || b.perfect - a.perfect || b.correct - a.correct)
+    // Calculate points for ALL registered users (0 if no predictions)
+    const board = profiles.map(profile => {
+      const uid  = profile.id
+      const name = profile.full_name ?? 'Inconnu'
+      const userPreds = predsByUser[uid] || []
 
-    setBoard(sorted)
+      let points = 0, preds = userPreds.length, perfect = 0, correct = 0, partial = 0
+
+      for (const p of userPreds) {
+        const match = matchMap[p.match_id]
+        if (match?.status === 'finished' && match.home_score != null) {
+          const pts = calcPoints(
+            { home_score: p.home_score, away_score: p.away_score, winner_pick: p.winner_pick },
+            { home_score: match.home_score, away_score: match.away_score }
+          )
+          points += pts ?? 0
+          if (pts === 10) perfect++
+          else if (pts === 5) correct++
+          else if (pts === 3) partial++
+        }
+      }
+
+      return { uid, name, points, preds, perfect, correct, partial }
+    })
+
+    // Sort by points descending
+    board.sort((a,b) => b.points - a.points || b.perfect - a.perfect || b.correct - a.correct || a.name.localeCompare(b.name))
+
+    setBoard(board)
     setLoading(false)
   }
 
@@ -69,7 +80,10 @@ export default function Leaderboard() {
     setExpanded(expanded === uid ? null : uid)
   }
 
-  // Get predictions for a specific user
+  function canExpand(uid) {
+    return isAdmin || uid === user?.id
+  }
+
   function getUserHistory(uid) {
     const userPreds = allPreds.filter(p => p.user_id === uid)
     const matchMap = {}
@@ -90,15 +104,10 @@ export default function Leaderboard() {
     .sort((a,b) => a.match.match_date?.localeCompare(b.match.match_date))
   }
 
-  // Can a user see expanded predictions?
-  function canExpand(uid) {
-    return isAdmin || uid === user?.id
-  }
-
+  const MEDAL = ['🥇','🥈','🥉']
+  const RANK_CLASS = ['rank0','rank1','rank2']
   const myEntry = board.find(e => e.uid === user?.id)
   const myRank  = board.findIndex(e => e.uid === user?.id) + 1
-  const MEDAL   = ['🥇','🥈','🥉']
-  const RANK_CLASS = ['rank0','rank1','rank2']
 
   if (loading) return <div className="loading-screen"><div className="spinner"/></div>
 
@@ -107,15 +116,15 @@ export default function Leaderboard() {
       <div className="page-header">
         <h1 className="page-title">Classement <span>Général</span></h1>
         <p className="page-sub">
-          {board.length} participant{board.length>1?'s':''} · 
+          {board.length} participant{board.length>1?'s':''} ·
           {finishedCount === 0
             ? ' Points à 0 — en attente du premier match terminé'
-            : ` ${finishedCount} match${finishedCount>1?'s':''} terminé${finishedCount>1?'s':''} · Points mis à jour automatiquement`
+            : ` ${finishedCount} match${finishedCount>1?'s':''} terminé${finishedCount>1?'s':''} · Mis à jour automatiquement`
           }
         </p>
       </div>
 
-      {/* My position banner */}
+      {/* My position */}
       {myEntry && (
         <div className="my-pos-card">
           <div className="mp-rank display">#{myRank}</div>
@@ -135,12 +144,12 @@ export default function Leaderboard() {
 
       {board.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🏆</div>
-          <p>Aucun pronostic soumis pour l'instant.<br/>Soyez le premier à jouer !</p>
+          <div className="empty-icon">👥</div>
+          <p>Aucun collaborateur inscrit pour l'instant.</p>
         </div>
       ) : (
         <>
-          {/* TOP 3 PODIUM — always shown, 0 pts if not started */}
+          {/* Podium top 3 */}
           {board.length >= 3 && (
             <div className="podium">
               {[{e:board[1],r:1},{e:board[0],r:0},{e:board[2],r:2}].map(({e,r}) => (
@@ -156,7 +165,7 @@ export default function Leaderboard() {
             </div>
           )}
 
-          {/* FULL TABLE */}
+          {/* Full ranking table */}
           <div className="lb-table">
             <div className="lb-head">
               <span>#</span>
@@ -167,66 +176,48 @@ export default function Leaderboard() {
             </div>
 
             {board.map((e,i) => {
-              const isTop3 = i < 3
-              const isMe = e.uid === user?.id
+              const isTop3    = i < 3
+              const isMe      = e.uid === user?.id
               const isExpanded = expanded === e.uid
-              const canSee = canExpand(e.uid)
-              const history = isExpanded ? getUserHistory(e.uid) : []
+              const canSee    = canExpand(e.uid)
+              const history   = isExpanded ? getUserHistory(e.uid) : []
 
               return (
                 <div key={e.uid}>
-                  {/* Main row */}
                   <div
                     className={`lb-row ${isMe?'lb-me':''} ${isTop3?`lb-top${i}`:''}`}
                     onClick={() => canSee && toggleExpand(e.uid)}
                     style={{ cursor: canSee ? 'pointer' : 'default' }}
                   >
                     <span className="lb-rank">
-                      {i < 3
-                        ? <span className="lb-medal">{MEDAL[i]}</span>
-                        : <span className="lb-rn">{i+1}</span>
-                      }
+                      {i < 3 ? <span className="lb-medal">{MEDAL[i]}</span> : <span className="lb-rn">{i+1}</span>}
                     </span>
-
                     <span className="lb-name">
                       <span className={`lb-av ${isTop3?RANK_CLASS[i]:''}`}>{e.name[0]}</span>
                       <span className="lb-fullname">{e.name}</span>
                       {isMe && <span className="you-tag">Vous</span>}
                     </span>
-
                     <span className="lb-cell ar">{e.preds}</span>
-
-                    <span className={`lb-pts ${isTop3?`top-pts${i}`:''}`}>
-                      {e.points}
-                    </span>
-
-                    <span className="lb-expand">
-                      {canSee ? (isExpanded ? '▲' : '▼') : ''}
-                    </span>
+                    <span className={`lb-pts ${isTop3?`top-pts${i}`:''}`}>{e.points}</span>
+                    <span className="lb-expand">{canSee ? (isExpanded?'▲':'▼') : ''}</span>
                   </div>
 
-                  {/* Expanded predictions */}
+                  {/* Expanded history */}
                   {isExpanded && canSee && (
                     <div className="history-panel">
                       <div className="hist-title">
                         {isMe ? 'Vos pronostics' : `Pronostics de ${e.name.split(' ')[0]}`}
-                        {!isAdmin && !isMe && ' — vous ne pouvez voir que les vôtres'}
                       </div>
-
-                      {history.length === 0 && (
-                        <p className="hist-empty">Aucun pronostic soumis.</p>
-                      )}
-
+                      {history.length === 0 && <p className="hist-empty">Aucun pronostic soumis.</p>}
                       {history.map((h,hi) => {
                         const isPending = h.match.status !== 'finished'
                         const winnerLabel = h.pred.winner_pick === 'home' ? h.match.home_team
                           : h.pred.winner_pick === 'away' ? h.match.away_team
                           : h.pred.winner_pick === 'draw' ? 'Match nul' : '—'
-
                         return (
-                          <div key={hi} className={`hist-row 
-                            ${isPending ? 'hist-pending' : ''}
-                            ${h.pts===10?'hist-perfect':h.pts===5?'hist-good':h.pts===3?'hist-partial':h.pts===0&&!isPending?'hist-miss':''}`}>
+                          <div key={hi} className={`hist-row
+                            ${isPending?'hist-pending':''}
+                            ${h.pts===10?'hist-perfect':h.pts===5?'hist-good':h.pts===3?'hist-partial':!isPending&&h.pts===0?'hist-miss':''}`}>
                             <div className="hist-left">
                               <span className="hist-match">{h.match.home_team} vs {h.match.away_team}</span>
                               <span className="hist-group">{h.match.group_stage} · {h.match.match_date}</span>

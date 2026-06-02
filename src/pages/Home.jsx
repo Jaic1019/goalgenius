@@ -38,7 +38,7 @@ export default function Home() {
 
   function canPredict(m) {
     if (m.status !== 'upcoming') return false
-    try { return new Date() < new Date(`${m.match_date}T${m.match_time}`) } catch { return false }
+    try { return new Date() < new Date(`${m.match_date}T${m.match_time?.slice(0,5)}:00`) } catch { return false }
   }
 
   function setDraft(id, field, val) {

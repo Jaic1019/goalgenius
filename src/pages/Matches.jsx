@@ -18,13 +18,6 @@ function stageBucket(g) {
 }
 
 // Hide TBD matches (knockout matches not yet determined)
-function isValidMatch(m) { return true // show all matches including TBD
-  // OLD:
-  const home = (m.home_team || '').trim().toUpperCase()
-  const away = (m.away_team || '').trim().toUpperCase()
-  return home !== 'TBD' && away !== 'TBD' && home !== '' && away !== ''
-}
-
 export default function Matches() {
   const { matches, loading, apiStatus, lastSync } = useMatches()
   const { predictions, saving, save } = usePredictions()
@@ -40,7 +33,7 @@ export default function Matches() {
   const groupNames = useMemo(() => ['Tous', ...new Set(
     matches.filter(m => stageBucket(m.group_stage) === 'Phase de groupes')
            .map(m => m.group_stage).filter(Boolean).sort()
-  )], [validMatches])
+  )], [matches])
 
   const filtered = useMemo(() => matches.filter(m => {
     if (statusF !== 'all' && m.status !== statusF) return false
@@ -59,7 +52,7 @@ export default function Matches() {
 
   function canPredict(m) {
     if (m.status !== 'upcoming') return false
-    try { return new Date() < new Date(`${m.match_date}T${m.match_time}`) } catch { return false }
+    try { return new Date() < new Date(`${m.match_date}T${m.match_time?.slice(0,5)}:00`) } catch { return false }
   }
 
   function setDraft(id, field, val) {
