@@ -3,7 +3,7 @@ import { useMatches } from '../hooks/useMatches'
 import './Teams.css'
 
 // ── Flag resolver — no regex, no external import ──────────────────
-const _SF = {'SCO':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','ENG':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','WAL':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','NIR':'🏴󠁧󠁢󠁥󠁮󠁧󠁿'}
+const _SF = {'SCO':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC73\uDB40\uDC63\uDB40\uDC74\uDB40\uDC7F','ENG':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F','WAL':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC77\uDB40\uDC6C\uDB40\uDC73\uDB40\uDC7F','NIR':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F'}
 function resolveFlag(url) {
   if (!url || url === '🏳️') return null
   if (_SF[url.toUpperCase()]) return _SF[url.toUpperCase()]
@@ -18,7 +18,7 @@ function resolveFlag(url) {
 
 
 // Inline flag resolver
-const _SF = {'SCO':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','ENG':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','WAL':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','NIR':'🏴󠁧󠁢󠁥󠁮󠁧󠁿'}
+const _SF = {'SCO':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC73\uDB40\uDC63\uDB40\uDC74\uDB40\uDC7F','ENG':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F','WAL':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC77\uDB40\uDC6C\uDB40\uDC73\uDB40\uDC7F','NIR':'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F'}
 function resolveFlag(url) {
   if (!url||url==='🏳️') return null
   const up=typeof url==='string'?url.toUpperCase():''
