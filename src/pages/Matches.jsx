@@ -13,12 +13,22 @@ function stageBucket(g) {
   if (s.includes('r16')||s.includes('16')||s.includes('top 16')) return 'Top 16'
   if (s.includes('qf')||s.includes('quart')) return 'Quarts de finale'
   if (s.includes('sf')||s.includes('semi')||s.includes('demi')) return 'Demi-finales'
-  if ((s.includes('final')||s.includes('finale'))&&!s.includes('semi')&&!s.includes('quart')&&!s.includes('demi')&&!s.includes('3rd')) return 'Finale'
+  if ((s.includes('final')||s.includes('finale'))&&!s.includes('semi')&&!s.includes('quart')&&!s.includes('demi')&&!s.includes('3rd')&&!s.includes('third')) return 'Finale'
   return 'Phase de groupes'
+}
+
+function isKnockoutMatch(g) {
+  if (!g) return false
+  const s = g.toLowerCase()
+  return s.includes('r32')||s.includes('r16')||s.includes('top 32')||s.includes('top 16')||
+    s.includes('quart')||s.includes('qf')||s.includes('semi')||s.includes('demi')||s.includes('sf')||
+    s.includes('final')||s.includes('finale')||s.includes('3ème')||s.includes('3rd')
 }
 
 function canPredict(m) {
   if (m.status !== 'upcoming') return false
+  if (!m.home_team || !m.away_team) return false
+  if (m.home_team.trim().toUpperCase()==='TBD'||m.away_team.trim().toUpperCase()==='TBD') return false
   try { return new Date() < new Date(`${m.match_date}T${m.match_time?.slice(0,5)}:00`) } catch { return false }
 }
 
@@ -26,7 +36,8 @@ export default function Matches() {
   const { matches, loading, apiStatus, lastSync } = useMatches()
   const { predictions, saving, save } = usePredictions()
   const [drafts, setDrafts]     = useState({})
-  const [alerts, setAlerts]     = useState({}) // { matchId: { type, msg } }
+  const [alerts, setAlerts]     = useState({})
+  const [justSaved, setJustSaved] = useState({})
   const [statusF, setStatusF]   = useState('all')
   const [stageF,  setStageF]    = useState('Tous')
   const [groupF,  setGroupF]    = useState('Tous')
@@ -48,35 +59,38 @@ export default function Matches() {
     return true
   }), [matches, statusF, stageF, groupF, teamQ])
 
-  const live     = filtered.filter(m => m.status === 'live')
-  const upcoming = filtered.filter(m => m.status === 'upcoming')
-  const finished = filtered.filter(m => m.status === 'finished')
+  const live     = filtered.filter(m => m.status==='live')
+  const upcoming = filtered.filter(m => m.status==='upcoming')
+  const finished = filtered.filter(m => m.status==='finished')
 
   function setDraft(id, field, val) {
-    setAlerts(a => { const n={...a}; delete n[id]; return n }) // clear alert on edit
-    setDrafts(p => ({ ...p, [id]: { ...p[id], [field]: val } }))
+    setAlerts(a=>{const n={...a};delete n[id];return n})
+    setDrafts(p=>({...p,[id]:{...p[id],[field]:val}}))
   }
 
   async function handleSave(match) {
-    const d = drafts[match.id] || {}
-    const { ok, error, isUpdate } = await save(match.id, d.home, d.away, d.winner)
-
+    const d = drafts[match.id]||{}
+    const isKO = isKnockoutMatch(match.group_stage)
+    const {ok, error, isUpdate} = await save(match.id, d.home, d.away, d.winner, isKO)
     if (ok) {
+      const wl = d.winner==='home'?match.home_team:d.winner==='away'?match.away_team:'Match nul'
       const msg = isUpdate
-        ? `✏️ Pronostic mis à jour ! Score : ${d.home}–${d.away} · Vainqueur : ${d.winner === 'home' ? match.home_team : d.winner === 'away' ? match.away_team : 'Match nul'}\n📋 Consultez le classement pour voir votre rang.`
-        : `✅ Pronostic enregistré ! Score : ${d.home}–${d.away} · Vainqueur : ${d.winner === 'home' ? match.home_team : d.winner === 'away' ? match.away_team : 'Match nul'}\n📋 Vous pouvez modifier ce pronostic avant le coup d'envoi en resousmettant ce formulaire.\n🏆 Consultez le classement pour voir votre position.`
-      setAlerts(a => ({ ...a, [match.id]: { type: 'success', msg } }))
-      setDrafts(p => { const n={...p}; delete n[match.id]; return n })
+        ? `✏️ Pronostic mis à jour : ${d.home}–${d.away} · Vainqueur : ${wl}`
+        : `✅ Pronostic enregistré : ${d.home}–${d.away} · Vainqueur : ${wl}\n💡 Modifiable avant le coup d'envoi · Consultez le Classement pour votre rang.`
+      setAlerts(a=>({...a,[match.id]:{type:'success',msg}}))
+      setJustSaved(j=>({...j,[match.id]:true}))
+      setDrafts(p=>{const n={...p};delete n[match.id];return n})
+      setTimeout(()=>setJustSaved(j=>{const n={...j};delete n[match.id];return n}), 2000)
+      setTimeout(()=>setAlerts(a=>{const n={...a};delete n[match.id];return n}), 8000)
     } else {
-      setAlerts(a => ({ ...a, [match.id]: { type: 'error', msg: error } }))
+      setAlerts(a=>({...a,[match.id]:{type:'error',msg:error||'Erreur, réessayez.'}}))
+      setTimeout(()=>setAlerts(a=>{const n={...a};delete n[match.id];return n}), 5000)
     }
-    // Clear success after 8s
-    if (ok) setTimeout(() => setAlerts(a => { const n={...a}; delete n[match.id]; return n }), 8000)
   }
 
   function reset() { setStatusF('all'); setStageF('Tous'); setGroupF('Tous'); setTeamQ('') }
 
-  if (loading && matches.length === 0) return <div className="loading-screen"><div className="spinner"/></div>
+  if (loading && matches.length===0) return <div className="loading-screen"><div className="spinner"/></div>
 
   return (
     <div className="matches-page page fade-up">
@@ -84,7 +98,7 @@ export default function Matches() {
         <h1 className="page-title">Calendrier des <span>Matchs</span></h1>
         <p className="page-sub">
           {matches.length} matchs · Pronostics verrouillés au coup d'envoi · Horaires en CET
-          <span className={`api-dot ${apiStatus}`} style={{marginLeft:8}}/>
+          <span className={`api-dot ${apiStatus}`} style={{marginLeft:8,verticalAlign:'middle'}}/>
           {lastSync && ` Sync ${lastSync.toLocaleTimeString('fr-FR')}`}
         </p>
       </div>
@@ -93,7 +107,7 @@ export default function Matches() {
         <div className="filter-row">
           <span className="filter-lbl">Statut</span>
           <div className="filter-pills">
-            {[['all','Tous'],['upcoming','À venir'],['live','🔴 En direct'],['finished','Terminés']].map(([v,l]) => (
+            {[['all','Tous'],['upcoming','À venir'],['live','🔴 En direct'],['finished','Terminés']].map(([v,l])=>(
               <button key={v} className={`fpill ${statusF===v?'active':''}`} onClick={()=>setStatusF(v)}>{l}</button>
             ))}
           </div>
@@ -101,17 +115,17 @@ export default function Matches() {
         <div className="filter-row">
           <span className="filter-lbl">Phase</span>
           <div className="filter-pills">
-            {STAGES.map(s => (
+            {STAGES.map(s=>(
               <button key={s} className={`fpill ${stageF===s?'active':''}`}
                 onClick={()=>{setStageF(s);setGroupF('Tous')}}>{s}</button>
             ))}
           </div>
         </div>
-        {(stageF==='Tous'||stageF==='Phase de groupes') && groupNames.length > 2 && (
+        {(stageF==='Tous'||stageF==='Phase de groupes') && groupNames.length>2 && (
           <div className="filter-row">
             <span className="filter-lbl">Groupe</span>
             <div className="filter-pills">
-              {groupNames.map(g => <button key={g} className={`fpill ${groupF===g?'active':''}`} onClick={()=>setGroupF(g)}>{g}</button>)}
+              {groupNames.map(g=><button key={g} className={`fpill ${groupF===g?'active':''}`} onClick={()=>setGroupF(g)}>{g}</button>)}
             </div>
           </div>
         )}
@@ -125,39 +139,34 @@ export default function Matches() {
 
       <div className="results-count">{filtered.length} match{filtered.length!==1?'s':''} trouvé{filtered.length!==1?'s':''}</div>
 
-      {live.length > 0 && (
+      {live.length>0 && (
         <section>
           <div className="section-label section-label-live"><span className="live-dot"/>En direct ({live.length})</div>
-          <div className="matches-grid">{live.map(m => <MatchCard key={m.id} match={m} pred={predictions[m.id]} open={false}/>)}</div>
+          <div className="matches-grid">{live.map(m=><MatchCard key={m.id} match={m} pred={predictions[m.id]} open={false}/>)}</div>
         </section>
       )}
-
-      {upcoming.length > 0 && (
+      {upcoming.length>0 && (
         <section>
           <div className="section-label">À venir ({upcoming.length})</div>
           <div className="matches-grid">
-            {upcoming.map(m => (
+            {upcoming.map(m=>(
               <MatchCard key={m.id} match={m} pred={predictions[m.id]}
-                open={canPredict(m)}
-                draft={drafts[m.id]||{}}
-                onDraft={(f,v) => setDraft(m.id,f,v)}
-                onSubmit={() => handleSave(m)}
-                submitting={saving[m.id]}
-                error={alerts[m.id]?.type==='error' ? alerts[m.id].msg : null}
-                successMsg={alerts[m.id]?.type==='success' ? alerts[m.id].msg : null}
+                open={canPredict(m)} draft={drafts[m.id]||{}}
+                onDraft={(f,v)=>setDraft(m.id,f,v)}
+                onSubmit={()=>handleSave(m)} submitting={saving[m.id]}
+                error={alerts[m.id]?.type==='error'?alerts[m.id].msg:null}
+                justSaved={justSaved[m.id]||false}
               />
             ))}
           </div>
         </section>
       )}
-
-      {finished.length > 0 && (
+      {finished.length>0 && (
         <section>
           <div className="section-label">Terminés ({finished.length})</div>
-          <div className="matches-grid">{finished.map(m => <MatchCard key={m.id} match={m} pred={predictions[m.id]} open={false}/>)}</div>
+          <div className="matches-grid">{finished.map(m=><MatchCard key={m.id} match={m} pred={predictions[m.id]} open={false}/>)}</div>
         </section>
       )}
-
       {filtered.length===0 && !loading && (
         <div className="empty-state">
           <div className="empty-icon">🔍</div>

@@ -3,22 +3,29 @@
 .gtab:hover{border-color:var(--mca3);color:var(--mca3)}
 .gtab.active{background:var(--mca-dim);color:var(--mca3);border-color:var(--mca-border)}
 .group-content{display:flex;flex-direction:column;gap:1rem}
+
+/* Standings table - FIX 2: full team names */
 .st-table{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.st-head{display:grid;grid-template-columns:1fr 28px 28px 28px 28px 32px 32px 40px 46px;padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.07em}
-.st-row{display:grid;grid-template-columns:1fr 28px 28px 28px 28px 32px 32px 40px 46px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center;transition:background .15s}
+.st-head{display:grid;grid-template-columns:24px 1fr 28px 28px 28px 28px 32px 32px 40px 44px;padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.07em;align-items:center}
+.st-rank-h{color:var(--text3)}
+.st-row{display:grid;grid-template-columns:24px 1fr 28px 28px 28px 28px 32px 32px 40px 44px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center;transition:background .15s}
 .st-row:last-child{border-bottom:none}
 .st-row:hover{background:var(--bg3)}
 .st-row.qualified{border-left:3px solid var(--mca2)}
-.st-team{display:flex;align-items:center;gap:7px}
-.st-rk{font-size:11px;color:var(--text3);font-weight:700;min-width:14px}
-.gflag{width:24px;height:16px;border-radius:2px;object-fit:cover;flex-shrink:0}
-.gfb{width:24px;height:16px;border-radius:2px;background:var(--bg4);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text2)}
-.st-tn{font-size:13px;font-weight:600;color:var(--text)}
-.q-badge{font-size:9px;background:var(--mca-dim);color:var(--mca3);border:1px solid var(--mca-border);border-radius:4px;padding:1px 5px;font-weight:700}
+.st-rk{font-size:11px;color:var(--text3);font-weight:700}
+.st-team{display:flex;align-items:center;gap:8px;min-width:0}
+.gflag{width:22px;height:15px;border-radius:2px;object-fit:cover;flex-shrink:0}
+.gflag-emoji{font-size:18px;flex-shrink:0;line-height:1}
+.gfb{font-size:12px;font-weight:700;color:var(--text2);flex-shrink:0}
+/* FIX 2: No max-width, no truncation on team names */
+.st-tn{font-size:13px;font-weight:600;color:var(--text);white-space:normal;word-break:break-word}
+.q-badge{font-size:9px;background:var(--mca-dim);color:var(--mca3);border:1px solid var(--mca-border);border-radius:4px;padding:1px 5px;font-weight:700;flex-shrink:0}
 .st-n{font-size:13px;color:var(--text2);font-weight:500}
 .st-pts{font-size:15px;font-weight:700;color:var(--mca3)}
 .st-pts-h{color:var(--mca3)!important}
 .pos{color:var(--green)}.neg{color:var(--red)}.ar{text-align:right}
+
+/* Matches */
 .gm-block{display:flex;flex-direction:column;gap:8px}
 .gm-list{display:flex;flex-direction:column;gap:6px}
 .gm-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:8px 14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm)}
@@ -27,13 +34,13 @@
 .gm-team.away{justify-content:flex-end;flex-direction:row-reverse}
 .gm-mid{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:80px}
 .gm-sc{font-size:22px;color:var(--mca3);line-height:1}
+.gm-live{color:var(--red)!important;animation:pulse 1.4s ease infinite}
 .gm-dt{font-size:11px;color:var(--text3);text-align:center;font-weight:600}
 
-.gflag-emoji { font-size: 22px; line-height: 1; flex-shrink: 0; }
-.live-score { color: var(--red) !important; animation: pulse 1.4s ease infinite; }
-
-/* Updated st-head and st-row to match new grid */
-.st-head { grid-template-columns: 28px 1fr 28px 28px 28px 28px 32px 32px 40px 46px !important; }
-.st-row { grid-template-columns: 28px 1fr 28px 28px 28px 28px 32px 32px 40px 46px !important; }
-.st-team { display: flex; align-items: center; gap: 7px; }
-.st-rk { font-size: 11px; color: var(--text3); font-weight: 700; }
+@media(max-width:700px){
+  .st-head,.st-row{grid-template-columns:20px 1fr 26px 26px 26px 36px}
+  .st-head>span:nth-child(4),.st-head>span:nth-child(5),.st-head>span:nth-child(6),
+  .st-head>span:nth-child(8),.st-head>span:nth-child(9),
+  .st-row>span:nth-child(4),.st-row>span:nth-child(5),.st-row>span:nth-child(6),
+  .st-row>span:nth-child(8),.st-row>span:nth-child(9){display:none}
+}
