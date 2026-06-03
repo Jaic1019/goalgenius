@@ -1,51 +1,19 @@
-/**
- * FLAG RESOLVER — GoalGenius Final
- * Handles all flag formats from the API:
- * - "MX"  → 🇲🇽  (2-letter ISO code — confirmed from DB)
- * - "SCO" → 🏴󠁧󠁢󠁳󠁣󠁴󠁿  (special home nations)
- * - "🇫🇷" → 🇫🇷  (already emoji)
- * - "https://..." → image URL
- * - null/empty → null (show letter fallback)
- */
-
-const SPECIAL = {
-  'SCO': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
-  'ENG': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'WAL': '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
-  'NIR': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-}
-
-function isoToEmoji(code) {
-  try {
-    return code.toUpperCase().split('').map(c =>
-      String.fromCodePoint(c.charCodeAt(0) - 65 + 0x1F1E6)
-    ).join('')
-  } catch { return null }
+// Flag resolver — converts ISO codes to emoji flags
+const _SF = {
+  SCO: '\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC73\uDB40\uDC63\uDB40\uDC74\uDB40\uDC7F',
+  ENG: '\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F',
+  WAL: '\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC77\uDB40\uDC6C\uDB40\uDC73\uDB40\uDC7F',
+  NIR: '\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F',
 }
 
 export function resolveFlag(url) {
-  if (!url || url === '🏳️') return null
-
-  // Special 3-letter codes (home nations) — check first
-  const upper = typeof url === 'string' ? url.toUpperCase() : ''
-  if (SPECIAL[upper]) return SPECIAL[upper]
-
-  // Already an emoji flag (not URL, not file path, longer than 2 chars)
-  if (typeof url === 'string' &&
-      !url.startsWith('http') &&
-      !url.includes('.') &&
-      !url.includes('/') &&
-      url.length > 2) {
-    return url
+  if (!url || url === '\uD83C\uDFF3\uFE0F') return null
+  if (_SF[url.toUpperCase()]) return _SF[url.toUpperCase()]
+  if (url.length > 2 && !url.startsWith('http')) return url
+  if (url.length === 2) {
+    try { return url.toUpperCase().split('').map(c => String.fromCodePoint(c.charCodeAt(0) - 65 + 0x1F1E6)).join('') }
+    catch { return null }
   }
-
-  // 2-letter ISO code → emoji (confirmed API format: MX, ZA, KR etc.)
-  if (/^[a-zA-Z]{2}$/.test(url)) {
-    return isoToEmoji(url)
-  }
-
-  // Image URL → use as-is
   if (url.startsWith('http')) return url
-
   return null
 }
