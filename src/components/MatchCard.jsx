@@ -62,7 +62,7 @@ function getWinnerLabel(wp, homeName, awayName) {
 // ── Main Component ────────────────────────────────────────────────
 export default function MatchCard({
   match, pred, open,
-  draft = {}, onDraft, onSubmit, submitting, justSaved
+  draft = {}, onDraft, onSubmit, submitting, justSaved, error
 }) {
   const isTBD = !match.home_team || !match.away_team ||
     match.home_team.trim().toUpperCase() === 'TBD' ||
@@ -233,6 +233,11 @@ export default function MatchCard({
             </div>
 
             {/* Consistency warning — real-time */}
+            {/* Validation error from parent (missing score/winner) */}
+            {error && !consistencyError && (
+              <div className="pred-error">⚠️ {error}</div>
+            )}
+            {/* Consistency error (score contradicts winner) */}
             {consistencyError && (
               <div className="pred-warning">{consistencyError}</div>
             )}
