@@ -1,7 +1,19 @@
 import { useState, useMemo } from 'react'
 import { useMatches } from '../hooks/useMatches'
-import { resolveFlag } from '../lib/flags'
 import './Groups.css'
+
+// Inline flag resolver
+const _SF = {'SCO':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','ENG':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','WAL':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','NIR':'🏴󠁧󠁢󠁥󠁮󠁧󠁿'}
+function resolveFlag(url) {
+  if (!url||url==='🏳️') return null
+  const up=typeof url==='string'?url.toUpperCase():''
+  if (_SF[up]) return _SF[up]
+  if (!url.startsWith('http')&&!url.includes('.')&&!url.includes('/')&&url.length>2) return url
+  if (/^[a-zA-Z]{2}$/.test(url)) { try{return url.toUpperCase().split('').map(c=>String.fromCodePoint(c.charCodeAt(0)-65+0x1F1E6)).join('')}catch{return null} }
+  if (url.startsWith('http')) return url
+  return null
+}
+
 
 // ── Flag ──────────────────────────────────────────────────────────
 function Flag({ url, name }) {
