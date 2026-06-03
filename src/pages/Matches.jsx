@@ -97,7 +97,7 @@ export default function Matches() {
       <div className="page-header">
         <h1 className="page-title">Calendrier des <span>Matchs</span></h1>
         <p className="page-sub">
-          {matches.length} matchs · Pronostics verrouillés au coup d'envoi · Horaires en CET
+          {matches.length} matchs · Pronostics verrouillés au coup d'envoi · Horaires en CEST
           <span className={`api-dot ${apiStatus}`} style={{marginLeft:8,verticalAlign:'middle'}}/>
           {lastSync && ` Sync ${lastSync.toLocaleTimeString('fr-FR')}`}
         </p>

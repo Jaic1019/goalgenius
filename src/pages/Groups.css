@@ -45,3 +45,11 @@
   .st-row>span:nth-child(4),.st-row>span:nth-child(5),.st-row>span:nth-child(6),
   .st-row>span:nth-child(8),.st-row>span:nth-child(9) { display:none; }
 }
+
+/* Knockout tabs */
+.gtab-divider { width:1px; background:var(--border2); margin:0 4px; }
+.gtab-ko { border-color:var(--gold-border); color:var(--gold); }
+.gtab-ko:hover { border-color:var(--gold); background:var(--gold-dim); }
+.gtab-ko.active { background:var(--gold-dim); color:var(--gold); border-color:var(--gold); }
+.gm-tbd { opacity:0.7; }
+.gm-pen { font-size:11px; color:var(--text2); }
