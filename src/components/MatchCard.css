@@ -9,6 +9,8 @@
 /* Header */
 .mc-head { display:flex; align-items:center; gap:8px; padding:10px 14px 0; flex-wrap:wrap; }
 .mc-group { font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:0.06em; flex-shrink:0; }
+.mc-badges { display:flex; gap:4px; align-items:center; }
+.ko-badge { font-size:9px !important; }
 .mc-time { font-size:11px; color:var(--text2); font-weight:500; margin-left:auto; white-space:nowrap; }
 
 /* Teams */
@@ -18,34 +20,38 @@
 .mc-team-name { font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .flag-img { border-radius:4px; object-fit:cover; display:block; flex-shrink:0; }
 .flag-fb { border-radius:4px; background:var(--bg4); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--text2); flex-shrink:0; }
-.flag-emoji { flex-shrink:0; line-height:1; }
-.mc-center { text-align:center; flex-shrink:0; }
-.mc-score-live { font-size:36px; color:var(--gold); line-height:1; display:flex; align-items:center; justify-content:center; }
-.mc-score-live > span { display:flex; align-items:center; gap:4px; }
+.flag-emoji { flex-shrink:0; line-height:1; display:inline-block; }
+.mc-center { text-align:center; flex-shrink:0; min-width:80px; }
+.mc-score-live { font-size:36px; color:var(--gold); line-height:1; display:flex; align-items:center; justify-content:center; gap:4px; font-family:'Bebas Neue',sans-serif; }
 .mc-score-sep { font-size:22px; color:var(--text3); }
-.mc-penalty { font-size:11px; color:var(--text2); font-weight:600; margin-top:2px; background:var(--bg4); border-radius:var(--radius-xs); padding:1px 6px; }
-.mc-vs { font-size:20px; color:var(--text3); letter-spacing:0.1em; }
+.mc-penalty { font-size:11px; color:var(--text2); font-weight:600; margin-top:2px; }
+.mc-vs { font-size:20px; color:var(--text3); letter-spacing:0.1em; font-family:'Teko',sans-serif; }
 .mc-city { font-size:10px; color:var(--text3); margin-top:4px; font-weight:500; }
 
 /* Prediction area */
 .mc-prediction { border-top:1px solid var(--border2); background:var(--bg3); }
 
-/* TBD */
+/* TBD message */
 .mc-tbd-msg { padding:12px 14px; font-size:12px; color:var(--text3); font-style:italic; font-weight:500; line-height:1.5; }
 
 /* Open form */
 .mc-pred-open { padding:14px; display:flex; flex-direction:column; gap:12px; }
+
+/* Context */
 .pred-context { font-size:12px; line-height:1.5; padding:8px 12px; border-radius:var(--radius-xs); }
 .pred-context-new { background:var(--mca-dim); color:var(--mca3); border:1px solid var(--mca-border); }
 .pred-context-update { background:var(--gold-dim); color:var(--gold); border:1px solid var(--gold-border); }
+
+/* Section labels */
 .pred-section-label { font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:0.08em; }
-.knockout-hint { font-size:10px; font-weight:500; color:var(--gold); text-transform:none; letter-spacing:0; }
+.pred-label-hint { font-size:10px; color:var(--text3); font-weight:500; text-transform:none; letter-spacing:0; }
+.pred-ko-hint { font-size:10px; color:var(--gold); font-weight:500; text-transform:none; letter-spacing:0; }
 
 /* Score inputs */
 .pred-score-row { display:flex; align-items:center; justify-content:center; gap:12px; }
 .pred-score-block { display:flex; flex-direction:column; align-items:center; gap:6px; }
 .pred-score-label { font-size:11px; font-weight:700; color:var(--text2); text-align:center; text-transform:uppercase; letter-spacing:0.04em; max-width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.score-in { width:64px !important; text-align:center; font-size:24px; font-weight:700; color:var(--text); padding:8px 6px; border:2px solid var(--border2); background:var(--bg4); border-radius:var(--radius-sm); outline:none; transition:border-color 0.15s; }
+.score-in { width:64px !important; text-align:center; font-size:24px; font-weight:700; color:var(--text); padding:8px 6px; border:2px solid var(--border2); background:var(--bg4); border-radius:var(--radius-sm); outline:none; transition:border-color 0.15s,box-shadow 0.15s; }
 .score-in:focus { border-color:var(--mca3); box-shadow:0 0 0 3px var(--mca-glow); }
 .pred-score-dash { font-size:28px; color:var(--text2); font-weight:300; padding-top:20px; }
 
@@ -53,32 +59,32 @@
 .pred-winner-section { display:flex; flex-direction:column; gap:8px; }
 .pred-winner-btns { display:flex; gap:6px; }
 .winner-btn { flex:1; padding:8px 4px; border-radius:var(--radius-sm); border:2px solid var(--border2); background:var(--bg4); color:var(--text2); font-family:'DM Sans',sans-serif; font-size:11px; font-weight:600; cursor:pointer; transition:all 0.15s; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.winner-btn:hover { border-color:var(--mca3); color:var(--mca3); background:var(--mca-dim); }
+.winner-btn:hover:not(:disabled) { border-color:var(--mca3); color:var(--mca3); background:var(--mca-dim); }
 .winner-btn.selected { border-color:var(--mca3); background:var(--mca-dim); color:var(--mca3); }
-.winner-btn.implied { border-color:var(--border3); color:var(--text2); background:rgba(255,255,255,0.03); }
-.home-sel,.away-sel { border-color:var(--green)!important; background:var(--green-dim)!important; color:var(--green)!important; }
-.draw-sel { border-color:var(--gold)!important; background:var(--gold-dim)!important; color:var(--gold)!important; }
+.winner-btn.implied { border-color:var(--border3); color:var(--text); background:rgba(255,255,255,0.04); }
+.home-sel, .away-sel { border-color:var(--green) !important; background:var(--green-dim) !important; color:var(--green) !important; }
+.draw-sel { border-color:var(--gold) !important; background:var(--gold-dim) !important; color:var(--gold) !important; }
 
-/* Warning — consistency error */
+/* Warning */
 .pred-warning { background:var(--gold-dim); color:var(--gold); border:1px solid var(--gold-border); border-radius:var(--radius-xs); padding:8px 12px; font-size:12px; font-weight:600; line-height:1.5; }
 
 /* Submit */
 .pred-submit { width:100%; padding:11px; font-size:14px; }
-.pred-submit:disabled { opacity:0.4; cursor:not-allowed; }
+.pred-submit:disabled { opacity:0.4; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
 
 /* Confirmed prediction */
 .mc-pred-confirmed { padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
-.mc-just-saved { animation:flashGreen 1s ease; }
+.mc-just-saved { animation:flashGreen 1.2s ease; }
 @keyframes flashGreen { 0%{background:rgba(0,240,122,0.15);}100%{background:transparent;} }
 .pred-conf-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px; }
 .pred-conf-badge { font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.06em; }
 .pred-conf-hint { font-size:11px; color:var(--text3); font-style:italic; }
 .pred-conf-body { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-.pred-conf-scores { display:flex; flex-direction:column; gap:3px; }
+.pred-conf-left { display:flex; flex-direction:column; gap:3px; }
 .pred-conf-score { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--mca3); line-height:1; }
 .pred-conf-winner { font-size:12px; color:var(--text2); font-weight:600; }
 .pred-conf-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
-.pts-badge { font-size:13px!important; padding:4px 12px!important; }
+.pts-badge { font-size:13px !important; padding:4px 12px !important; }
 .pred-pts-explain { font-size:11px; color:var(--text2); font-style:italic; }
 .pred-waiting { font-size:12px; color:var(--text3); font-style:italic; }
 

@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react'
 import { useMatches } from '../hooks/useMatches'
+import { resolveFlag } from '../lib/flags'
 import './Teams.css'
 function Flag({ url, name }) {
   const [err, setErr] = useState(false)
-  if (!url || url === '🏳️') return <div className="team-fb">{name?.[0]}</div>
-  const isEmoji = !url.startsWith('http') && !url.includes('.') && !url.includes('/')
-  if (isEmoji) return <div className="team-fb" style={{fontSize:28}}>{url}</div>
-  if (err) return <div className="team-fb">{name?.[0]}</div>
-  return <img src={url} alt={name} className="team-flag" onError={() => setErr(true)} />
+  const resolved = resolveFlag(url)
+  const fb = <div className="team-fb">{name?.[0]}</div>
+  if (!resolved) return fb
+  if (!resolved.startsWith('http')) return <div className="team-fb" style={{fontSize:28,background:'transparent',border:'none'}}>{resolved}</div>
+  if (err) return fb
+  return <img src={resolved} alt={name} className="team-flag" onError={()=>setErr(true)}/>
 }
 export default function Teams() {
   const { matches, loading } = useMatches()

@@ -10,7 +10,10 @@ export function usePredictions() {
 
   const load = useCallback(async () => {
     if (!user) return
-    const { data } = await supabase.from('predictions').select('*').eq('user_id', user.id)
+    const { data } = await supabase
+      .from('predictions')
+      .select('*')
+      .eq('user_id', user.id)
     const map = {}
     for (const p of (data || [])) map[p.match_id] = p
     setPredictions(map)
@@ -21,25 +24,20 @@ export function usePredictions() {
   async function save(matchId, homeScore, awayScore, winnerPick, isKnockout = false) {
     if (!user) return { ok: false, error: 'Non connecté' }
 
-    // Full validation including consistency check
-    const validationError = validatePrediction(homeScore, awayScore, winnerPick, isKnockout)
-    if (validationError) return { ok: false, error: validationError }
+    const error = validatePrediction(homeScore, awayScore, winnerPick, isKnockout)
+    if (error) return { ok: false, error }
 
     const isUpdate = !!predictions[matchId]
     setSaving(s => ({ ...s, [matchId]: true }))
 
-    const { error } = await supabase.from('predictions').upsert(
-      {
-        user_id:     user.id,
-        match_id:    matchId,
-        home_score:  Number(homeScore),
-        away_score:  Number(awayScore),
-        winner_pick: winnerPick,
-      },
-      { onConflict: 'user_id,match_id' }
-    )
+    const { error: dbError } = await supabase
+      .from('predictions')
+      .upsert(
+        { user_id: user.id, match_id: matchId, home_score: Number(homeScore), away_score: Number(awayScore), winner_pick: winnerPick },
+        { onConflict: 'user_id,match_id' }
+      )
 
-    if (!error) {
+    if (!dbError) {
       setPredictions(p => ({
         ...p,
         [matchId]: { home_score: Number(homeScore), away_score: Number(awayScore), winner_pick: winnerPick }
@@ -47,7 +45,7 @@ export function usePredictions() {
     }
 
     setSaving(s => ({ ...s, [matchId]: false }))
-    return { ok: !error, error: error?.message, isUpdate }
+    return { ok: !dbError, error: dbError?.message, isUpdate }
   }
 
   return { predictions, saving, save, reload: load }
