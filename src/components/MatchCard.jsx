@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { calcPoints, validatePrediction } from '../lib/scoring'
-import { toParisTime, getStadiumName, isPredictionOpen } from '../lib/timeUtils'
+import { toParisTime, getStadiumName, isPredictionOpen, isKnockoutMatch } from '../lib/timeUtils'
 import { resolveFlag } from '../lib/flags'
 import './MatchCard.css'
 
@@ -9,27 +9,14 @@ const STATUS_FR = { upcoming: 'À venir', live: 'En direct', finished: 'Terminé
 // ── Flag component ────────────────────────────────────────────────
 function Flag({ url, name, size = 40 }) {
   const [err, setErr] = useState(false)
-  // DB stores emoji directly - just check if it's a URL or emoji
   if (!url) return <div className="flag-fb" style={{width:size,height:Math.round(size*0.67)}}>{name?.[0]??'?'}</div>
-  
-  // Try resolveFlag for any format (emoji, ISO code, URL)
   const resolved = resolveFlag(url) || url
-  
   if (!resolved.startsWith('http')) {
     return <span className="flag-emoji" style={{fontSize:Math.round(size*0.8)}}>{resolved}</span>
   }
   if (err) return <div className="flag-fb" style={{width:size,height:Math.round(size*0.67)}}>{name?.[0]??'?'}</div>
   return <img src={resolved} alt={name} className="flag-img"
     style={{width:size,height:Math.round(size*0.67)}} onError={()=>setErr(true)}/>
-}
-
-// ── Helpers ───────────────────────────────────────────────────────
-function isKnockoutMatch(g) {
-  if (!g) return false
-  const s = g.toLowerCase()
-  return s.includes('r32')||s.includes('r16')||s.includes('top 32')||s.includes('top 16')||
-    s.includes('quart')||s.includes('qf')||s.includes('semi')||s.includes('demi')||
-    s.includes('sf')||s.includes('final')||s.includes('finale')||s.includes('3ème')||s.includes('3rd')
 }
 
 function getWinnerLabel(wp, homeName, awayName) {
@@ -41,21 +28,40 @@ function getWinnerLabel(wp, homeName, awayName) {
 
 // ── Main Component ────────────────────────────────────────────────
 export default function MatchCard({
-  match, pred, open,
+  match, pred, open, stadiums = {},
   draft = {}, onDraft, onSubmit, submitting, justSaved, error
 }) {
-  const isTBD = !match.home_team || !match.away_team ||
-    match.home_team.trim().toUpperCase() === 'TBD' ||
-    match.away_team.trim().toUpperCase() === 'TBD'
+  // Determine if teams are known real teams or still TBD/labels
+  const homeIsLabel = !match.home_flag && (
+    match.home_team?.toUpperCase() === 'TBD' ||
+    match.home_team?.toUpperCase().startsWith('WINNER') ||
+    match.home_team?.toUpperCase().startsWith('LOSER')
+  )
+  const awayIsLabel = !match.away_flag && (
+    match.away_team?.toUpperCase() === 'TBD' ||
+    match.away_team?.toUpperCase().startsWith('WINNER') ||
+    match.away_team?.toUpperCase().startsWith('LOSER')
+  )
+  const isTBD = homeIsLabel || awayIsLabel
 
   const isKnockout    = isKnockoutMatch(match.group_stage)
   const effectiveOpen = open && !isTBD
   const isUpdate      = !!pred
 
-  // Convert time using IANA → UTC → Intl in browser
-  const timeInfo = toParisTime(match.local_date_raw, match.stadium_id, match.match_date, match.match_time)
-  const rawStadium = getStadiumName(match.stadium_id) || match.stadium || match.city || ''
+  // Get stadium timezone from stadiums map
+  const stadium   = stadiums[match.stadium_id]
+  const timezone  = stadium?.timezone || 'America/New_York'
+  const timeInfo  = toParisTime(match.local_date_raw, timezone, match.match_date, match.match_time)
+  const rawStadium = getStadiumName(match.stadium_id, stadiums) || match.stadium || match.city || ''
   const stadiumDisplay = rawStadium.includes('·') ? rawStadium.split('·')[0].trim() : rawStadium
+
+  // Display name: use label if TBD, otherwise team name
+  const homeDisplay = homeIsLabel
+    ? (match.home_team_label || match.home_team || 'À déterminer')
+    : (match.home_team || 'À déterminer')
+  const awayDisplay = awayIsLabel
+    ? (match.away_team_label || match.away_team || 'À déterminer')
+    : (match.away_team || 'À déterminer')
 
   // Real-time consistency validation
   const hasScores = draft.home !== undefined && draft.home !== '' &&
@@ -64,7 +70,6 @@ export default function MatchCard({
     ? validatePrediction(draft.home, draft.away, draft.winner, isKnockout)
     : null
 
-  // Implied winner from score inputs
   const impliedWinner = hasScores
     ? Number(draft.home) > Number(draft.away) ? 'home'
     : Number(draft.home) < Number(draft.away) ? 'away'
@@ -81,10 +86,7 @@ export default function MatchCard({
 
   const ptsCls   = pts===10?'badge-gold':pts===5?'badge-green':pts===3?'badge-blue':'badge-gray'
   const ptsLabel = pts===10?'Score parfait !':pts===5?'Bon vainqueur !':pts===3?'Un score juste !':pts===0?'Raté.':''
-
-  const canSave = !submitting && !(consistencyError && hasScores && draft.winner)
-
-  // Only show score if match is live or finished
+  const canSave  = !submitting && !(consistencyError && hasScores && draft.winner)
   const showScore = match.status === 'live' || match.status === 'finished'
 
   return (
@@ -107,8 +109,8 @@ export default function MatchCard({
       {/* Teams + Score */}
       <div className="mc-teams">
         <div className="mc-team home">
-          <Flag url={match.home_flag} name={match.home_team}/>
-          <span className="mc-team-name">{isTBD?'À déterminer':match.home_team}</span>
+          {!homeIsLabel && <Flag url={match.home_flag} name={homeDisplay}/>}
+          <span className="mc-team-name">{homeDisplay}</span>
         </div>
 
         <div className="mc-center">
@@ -130,15 +132,15 @@ export default function MatchCard({
         </div>
 
         <div className="mc-team away">
-          <span className="mc-team-name">{isTBD?'À déterminer':match.away_team}</span>
-          <Flag url={match.away_flag} name={match.away_team}/>
+          <span className="mc-team-name">{awayDisplay}</span>
+          {!awayIsLabel && <Flag url={match.away_flag} name={awayDisplay}/>}
         </div>
       </div>
 
       {/* Prediction Section */}
       <div className="mc-prediction">
 
-        {/* TBD */}
+        {/* TBD — show label info */}
         {isTBD&&(
           <div className="mc-tbd-msg">
             ⏳ Équipes à déterminer — les pronostics s'ouvriront dès la confirmation des équipes
@@ -158,13 +160,13 @@ export default function MatchCard({
             <div className="pred-section-label">📊 Score prédit <span className="pred-label-hint">(90 minutes)</span></div>
             <div className="pred-score-row">
               <div className="pred-score-block">
-                <div className="pred-score-label">{match.home_team}</div>
+                <div className="pred-score-label">{homeDisplay}</div>
                 <input type="number" min="0" max="20" className="score-in" placeholder="0"
                   value={draft.home??''} onChange={e=>onDraft('home',e.target.value)}/>
               </div>
               <div className="pred-score-dash">–</div>
               <div className="pred-score-block">
-                <div className="pred-score-label">{match.away_team}</div>
+                <div className="pred-score-label">{awayDisplay}</div>
                 <input type="number" min="0" max="20" className="score-in" placeholder="0"
                   value={draft.away??''} onChange={e=>onDraft('away',e.target.value)}/>
               </div>
@@ -178,7 +180,7 @@ export default function MatchCard({
               <div className="pred-winner-btns">
                 <button className={`winner-btn${draft.winner==='home'?' selected home-sel':impliedWinner==='home'&&!draft.winner?' implied':''}`}
                   onClick={()=>onDraft('winner',draft.winner==='home'?null:'home')} type="button">
-                  {match.home_team}
+                  {homeDisplay}
                 </button>
                 {!isKnockout&&(
                   <button className={`winner-btn winner-btn-draw${draft.winner==='draw'?' selected draw-sel':impliedWinner==='draw'&&!draft.winner?' implied':''}`}
@@ -188,7 +190,7 @@ export default function MatchCard({
                 )}
                 <button className={`winner-btn${draft.winner==='away'?' selected away-sel':impliedWinner==='away'&&!draft.winner?' implied':''}`}
                   onClick={()=>onDraft('winner',draft.winner==='away'?null:'away')} type="button">
-                  {match.away_team}
+                  {awayDisplay}
                 </button>
               </div>
             </div>
@@ -215,7 +217,7 @@ export default function MatchCard({
             <div className="pred-conf-body">
               <div className="pred-conf-left">
                 <span className="pred-conf-score">{pred.home_score} – {pred.away_score}</span>
-                <span className="pred-conf-winner">🏆 {getWinnerLabel(pred.winner_pick,match.home_team,match.away_team)}</span>
+                <span className="pred-conf-winner">🏆 {getWinnerLabel(pred.winner_pick,homeDisplay,awayDisplay)}</span>
               </div>
               <div className="pred-conf-right">
                 {pts!=null

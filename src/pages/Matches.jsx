@@ -5,79 +5,97 @@ import MatchCard from '../components/MatchCard'
 import { isPredictionOpen, isKnockoutMatch } from '../lib/timeUtils'
 import './Matches.css'
 
-const STAGES = ['Tous','Phase de groupes','Top 16','Quarts de finale','Demi-finales','Finale']
+const STAGES = [
+  'Tous',
+  'Phase de groupes',
+  '16e de finale',
+  'Huitièmes de finale',
+  'Quarts de finale',
+  'Demi-finales',
+  'Match pour la 3ème place',
+  'Finale',
+]
 
 function stageBucket(g) {
   if (!g) return 'Phase de groupes'
   const s = g.toLowerCase()
-  if (s.includes('r16')||s.includes('16')||s.includes('top 16')) return 'Top 16'
-  if (s.includes('qf')||s.includes('quart')) return 'Quarts de finale'
-  if (s.includes('sf')||s.includes('semi')||s.includes('demi')) return 'Demi-finales'
-  if ((s.includes('final')||s.includes('finale'))&&!s.includes('semi')&&!s.includes('quart')&&!s.includes('demi')&&!s.includes('3rd')&&!s.includes('third')) return 'Finale'
+  if (s === '16e de finale' || s.includes('16e')) return '16e de finale'
+  if (s.includes('huitième') || s.includes('r16')) return 'Huitièmes de finale'
+  if (s.includes('quart') || s.includes('qf')) return 'Quarts de finale'
+  if (s.includes('demi') || s.includes('sf') || s.includes('semi')) return 'Demi-finales'
+  if (s.includes('3ème') || s.includes('3rd') || s.includes('place')) return 'Match pour la 3ème place'
+  if ((s.includes('final') || s.includes('finale')) &&
+      !s.includes('demi') && !s.includes('semi') && !s.includes('quart') && !s.includes('3')) return 'Finale'
   return 'Phase de groupes'
 }
 
 export default function Matches() {
-  const { matches, loading, apiStatus, lastSync } = useMatches()
+  const { matches, stadiums, loading, apiStatus, lastSync } = useMatches()
   const { predictions, saving, save } = usePredictions()
-  const [drafts, setDrafts]     = useState({})
-  const [alerts, setAlerts]     = useState({})
+  const [drafts,    setDrafts]    = useState({})
+  const [alerts,    setAlerts]    = useState({})
   const [justSaved, setJustSaved] = useState({})
-  const [statusF, setStatusF]   = useState('all')
-  const [stageF,  setStageF]    = useState('Tous')
-  const [groupF,  setGroupF]    = useState('Tous')
-  const [teamQ,   setTeamQ]     = useState('')
-  const [dateF,   setDateF]     = useState('')
+  const [statusF,   setStatusF]   = useState('all')
+  const [stageF,    setStageF]    = useState('Tous')
+  const [groupF,    setGroupF]    = useState('Tous')
+  const [teamQ,     setTeamQ]     = useState('')
+  const [dateF,     setDateF]     = useState('')
 
   const groupNames = useMemo(() => ['Tous', ...new Set(
-    matches.filter(m => stageBucket(m.group_stage)==='Phase de groupes')
-           .map(m => m.group_stage).filter(Boolean).sort()
+    matches
+      .filter(m => stageBucket(m.group_stage) === 'Phase de groupes')
+      .map(m => m.group_stage).filter(Boolean).sort()
   )], [matches])
 
   const filtered = useMemo(() => matches.filter(m => {
     if (statusF !== 'all' && m.status !== statusF) return false
     if (stageF  !== 'Tous' && stageBucket(m.group_stage) !== stageF) return false
     if (groupF  !== 'Tous' && m.group_stage !== groupF) return false
-    if (dateF && m.match_date !== dateF) return false
+    if (dateF   && m.match_date !== dateF) return false
     if (teamQ.trim()) {
       const q = teamQ.trim().toLowerCase()
-      return m.home_team?.toLowerCase().includes(q) || m.away_team?.toLowerCase().includes(q)
+      return m.home_team?.toLowerCase().includes(q) ||
+             m.away_team?.toLowerCase().includes(q) ||
+             m.home_team_label?.toLowerCase().includes(q) ||
+             m.away_team_label?.toLowerCase().includes(q)
     }
     return true
-  }), [matches, statusF, stageF, groupF, teamQ])
+  }), [matches, statusF, stageF, groupF, teamQ, dateF])
 
-  const live     = filtered.filter(m => m.status==='live')
-  const upcoming = filtered.filter(m => m.status==='upcoming')
-  const finished = filtered.filter(m => m.status==='finished')
+  const live     = filtered.filter(m => m.status === 'live')
+  const upcoming = filtered.filter(m => m.status === 'upcoming')
+  const finished = filtered.filter(m => m.status === 'finished')
 
   function setDraft(id, field, val) {
-    setAlerts(a=>{const n={...a};delete n[id];return n})
-    setDrafts(p=>({...p,[id]:{...p[id],[field]:val}}))
+    setAlerts(a => { const n = {...a}; delete n[id]; return n })
+    setDrafts(p => ({...p, [id]: {...p[id], [field]: val}}))
   }
 
   async function handleSave(match) {
-    const d = drafts[match.id]||{}
+    const d    = drafts[match.id] || {}
     const isKO = isKnockoutMatch(match.group_stage)
-    const {ok, error, isUpdate} = await save(match.id, d.home, d.away, d.winner, isKO)
+    const { ok, error, isUpdate } = await save(match.id, d.home, d.away, d.winner, isKO)
     if (ok) {
-      const wl = d.winner==='home'?match.home_team:d.winner==='away'?match.away_team:'Match nul'
+      const wl  = d.winner==='home' ? match.home_team : d.winner==='away' ? match.away_team : 'Match nul'
       const msg = isUpdate
         ? `✏️ Pronostic mis à jour : ${d.home}–${d.away} · Vainqueur : ${wl}`
         : `✅ Pronostic enregistré : ${d.home}–${d.away} · Vainqueur : ${wl}\n💡 Modifiable avant le coup d'envoi · Consultez le Classement pour votre rang.`
-      setAlerts(a=>({...a,[match.id]:{type:'success',msg}}))
-      setJustSaved(j=>({...j,[match.id]:true}))
-      setDrafts(p=>{const n={...p};delete n[match.id];return n})
-      setTimeout(()=>setJustSaved(j=>{const n={...j};delete n[match.id];return n}), 2000)
-      setTimeout(()=>setAlerts(a=>{const n={...a};delete n[match.id];return n}), 8000)
+      setAlerts(a  => ({...a,  [match.id]: {type:'success', msg}}))
+      setJustSaved(j => ({...j, [match.id]: true}))
+      setDrafts(p  => { const n = {...p}; delete n[match.id]; return n })
+      setTimeout(() => setJustSaved(j => { const n = {...j}; delete n[match.id]; return n }), 2000)
+      setTimeout(() => setAlerts(a   => { const n = {...a}; delete n[match.id]; return n }), 8000)
     } else {
-      setAlerts(a=>({...a,[match.id]:{type:'error',msg:error||'Erreur, réessayez.'}}))
-      setTimeout(()=>setAlerts(a=>{const n={...a};delete n[match.id];return n}), 5000)
+      setAlerts(a => ({...a, [match.id]: {type:'error', msg: error || 'Erreur, réessayez.'}}))
+      setTimeout(() => setAlerts(a => { const n = {...a}; delete n[match.id]; return n }), 5000)
     }
   }
 
-  function reset() { setStatusF('all'); setStageF('Tous'); setGroupF('Tous'); setTeamQ(''); setDateF('') }
+  function reset() {
+    setStatusF('all'); setStageF('Tous'); setGroupF('Tous'); setTeamQ(''); setDateF('')
+  }
 
-  if (loading && matches.length===0) return <div className="loading-screen"><div className="spinner"/></div>
+  if (loading && matches.length === 0) return <div className="loading-screen"><div className="spinner"/></div>
 
   return (
     <div className="matches-page page fade-up">
@@ -112,18 +130,22 @@ export default function Matches() {
           <div className="filter-row">
             <span className="filter-lbl">Groupe</span>
             <div className="filter-pills">
-              {groupNames.map(g=><button key={g} className={`fpill ${groupF===g?'active':''}`} onClick={()=>setGroupF(g)}>{g}</button>)}
+              {groupNames.map(g=>(
+                <button key={g} className={`fpill ${groupF===g?'active':''}`} onClick={()=>setGroupF(g)}>{g}</button>
+              ))}
             </div>
           </div>
         )}
         <div className="filter-row">
           <span className="filter-lbl">Date</span>
-          <input type="date" className="team-search" style={{maxWidth:160}} value={dateF} onChange={e=>setDateF(e.target.value)}/>
+          <input type="date" className="team-search" style={{maxWidth:160}} value={dateF}
+            onChange={e=>setDateF(e.target.value)}/>
           {dateF && <button className="btn btn-ghost btn-sm" onClick={()=>setDateF('')}>×</button>}
         </div>
         <div className="filter-row">
           <span className="filter-lbl">Équipe</span>
-          <input className="team-search" placeholder="Rechercher une équipe..." value={teamQ} onChange={e=>setTeamQ(e.target.value)}/>
+          <input className="team-search" placeholder="Rechercher une équipe..." value={teamQ}
+            onChange={e=>setTeamQ(e.target.value)}/>
           {(statusF!=='all'||stageF!=='Tous'||groupF!=='Tous'||teamQ||dateF) &&
             <button className="btn btn-ghost btn-sm" onClick={reset}>Réinitialiser</button>}
         </div>
@@ -134,7 +156,9 @@ export default function Matches() {
       {live.length>0 && (
         <section>
           <div className="section-label section-label-live"><span className="live-dot"/>En direct ({live.length})</div>
-          <div className="matches-grid">{live.map(m=><MatchCard key={m.id} match={m} pred={predictions[m.id]} open={false}/>)}</div>
+          <div className="matches-grid">{live.map(m=>(
+            <MatchCard key={m.id} match={m} pred={predictions[m.id]} stadiums={stadiums} open={false}/>
+          ))}</div>
         </section>
       )}
       {upcoming.length>0 && (
@@ -142,8 +166,8 @@ export default function Matches() {
           <div className="section-label">À venir ({upcoming.length})</div>
           <div className="matches-grid">
             {upcoming.map(m=>(
-              <MatchCard key={m.id} match={m} pred={predictions[m.id]}
-                open={isPredictionOpen(m)} draft={drafts[m.id]||{}}
+              <MatchCard key={m.id} match={m} pred={predictions[m.id]} stadiums={stadiums}
+                open={isPredictionOpen(m, stadiums)} draft={drafts[m.id]||{}}
                 onDraft={(f,v)=>setDraft(m.id,f,v)}
                 onSubmit={()=>handleSave(m)} submitting={saving[m.id]}
                 error={alerts[m.id]?.type==='error'?alerts[m.id].msg:null}
@@ -156,7 +180,9 @@ export default function Matches() {
       {finished.length>0 && (
         <section>
           <div className="section-label">Terminés ({finished.length})</div>
-          <div className="matches-grid">{finished.map(m=><MatchCard key={m.id} match={m} pred={predictions[m.id]} open={false}/>)}</div>
+          <div className="matches-grid">{finished.map(m=>(
+            <MatchCard key={m.id} match={m} pred={predictions[m.id]} stadiums={stadiums} open={false}/>
+          ))}</div>
         </section>
       )}
       {filtered.length===0 && !loading && (

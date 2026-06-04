@@ -1,18 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { loadMatchesFromDB, syncFromAPI, bootstrapFromAPI } from '../lib/dataEngine'
+import { loadMatchesFromDB, loadStadiumsFromDB, syncFromAPI, bootstrapFromAPI } from '../lib/dataEngine'
 
 const POLL_MS = 60_000
 
 export function useMatches() {
-  const [matches, setMatches]     = useState([])
-  const [loading, setLoading]     = useState(true)
+  const [matches,   setMatches]   = useState([])
+  const [stadiums,  setStadiums]  = useState({})
+  const [loading,   setLoading]   = useState(true)
   const [apiStatus, setApiStatus] = useState('unknown')
-  const [lastSync, setLastSync]   = useState(null)
+  const [lastSync,  setLastSync]  = useState(null)
   const syncRef = useRef(false)
 
   const loadDB = useCallback(async () => {
-    const data = await loadMatchesFromDB()
+    const [data, stMap] = await Promise.all([loadMatchesFromDB(), loadStadiumsFromDB()])
     setMatches(data)
+    setStadiums(stMap)
     return data
   }, [])
 
@@ -47,5 +49,5 @@ export function useMatches() {
     return () => clearInterval(t)
   }, [init, sync])
 
-  return { matches, loading, apiStatus, lastSync, refresh: () => loadDB().then(() => sync()) }
+  return { matches, stadiums, loading, apiStatus, lastSync, refresh: () => loadDB().then(() => sync()) }
 }
