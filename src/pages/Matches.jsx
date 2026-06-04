@@ -18,9 +18,6 @@ function stageBucket(g) {
   return 'Phase de groupes'
 }
 
-T${m.match_time?.slice(0,5)}:00`) } catch { return false }
-}
-
 export default function Matches() {
   const { matches, loading, apiStatus, lastSync } = useMatches()
   const { predictions, saving, save } = usePredictions()

@@ -18,9 +18,6 @@ function useCountdown(target) {
   return { days:Math.floor(ms/86400000), hours:Math.floor((ms%86400000)/3600000), minutes:Math.floor((ms%3600000)/60000), seconds:Math.floor((ms%60000)/1000), started:diff<=0 }
 }
 
-T${m.match_time?.slice(0,5)}:00`) } catch { return false }
-}
-
 export default function Home() {
   const { matches, loading, apiStatus, lastSync } = useMatches()
   const { predictions, saving, save } = usePredictions()
