@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMatches } from '../hooks/useMatches'
 import { usePredictions } from '../hooks/usePredictions'
 import MatchCard from '../components/MatchCard'
-import { isPredictionOpen } from '../lib/timeUtils'
+import { isPredictionOpen, isKnockoutMatch } from '../lib/timeUtils'
 import './Home.css'
 
 const WC_START = new Date('2026-06-11T19:00:00+02:00')

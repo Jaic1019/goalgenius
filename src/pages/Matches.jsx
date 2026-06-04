@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useMatches } from '../hooks/useMatches'
 import { usePredictions } from '../hooks/usePredictions'
 import MatchCard from '../components/MatchCard'
-import { isPredictionOpen } from '../lib/timeUtils'
+import { isPredictionOpen, isKnockoutMatch } from '../lib/timeUtils'
 import './Matches.css'
 
 const STAGES = ['Tous','Phase de groupes','Top 32','Top 16','Quarts de finale','Demi-finales','Finale']

@@ -53,8 +53,9 @@ export default function MatchCard({
   const isUpdate      = !!pred
 
   // Convert time using IANA → UTC → Intl in browser
-  const timeInfo = toParisTime(match.local_date_raw, match.stadium_id)
-  const stadiumDisplay = getStadiumName(match.stadium_id) || match.stadium || match.city || ''
+  const timeInfo = toParisTime(match.local_date_raw, match.stadium_id, match.match_date, match.match_time)
+  const rawStadium = getStadiumName(match.stadium_id) || match.stadium || match.city || ''
+  const stadiumDisplay = rawStadium.includes('·') ? rawStadium.split('·')[0].trim() : rawStadium
 
   // Real-time consistency validation
   const hasScores = draft.home !== undefined && draft.home !== '' &&

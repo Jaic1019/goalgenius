@@ -53,8 +53,17 @@ export const STADIUM_NAMES = {
  * Uses IANA → UTC → Intl — fully browser-native, DST-aware
  * Returns { date: 'dim. 15 juin', time: '04:00', full: 'dim. 15 juin · 04:00 CEST' }
  */
-export function toParisTime(localDateRaw, stadiumId) {
-  if (!localDateRaw) return { date: '—', time: '—', full: '—' }
+export function toParisTime(localDateRaw, stadiumId, fallbackDate, fallbackTime) {
+  // Fallback for knockout matches without local_date_raw
+  if (!localDateRaw) {
+    if (fallbackDate && fallbackTime) {
+      const t = fallbackTime.slice(0, 5)
+      const d = new Intl.DateTimeFormat('fr-FR', { weekday:'short', day:'numeric', month:'long' })
+        .format(new Date(fallbackDate + 'T' + t + ':00'))
+      return { date: d, time: t, full: `${d} · ${t} CEST` }
+    }
+    return { date: '—', time: '—', full: '—' }
+  }
   
   try {
     // Parse "MM/DD/YYYY HH:MM"
@@ -144,4 +153,15 @@ export function isPredictionOpen(match) {
     // Fallback: use stored match_date + match_time
     return new Date() < new Date(`${match.match_date}T${match.match_time?.slice(0,5)}:00`)
   } catch { return false }
+}
+
+/**
+ * Check if match is knockout stage
+ */
+export function isKnockoutMatch(g) {
+  if (!g) return false
+  const s = g.toLowerCase()
+  return s.includes('r32') || s.includes('r16') || s.includes('top 32') || s.includes('top 16') ||
+    s.includes('quart') || s.includes('qf') || s.includes('semi') || s.includes('demi') ||
+    s.includes('sf') || s.includes('final') || s.includes('finale') || s.includes('3ème') || s.includes('3rd')
 }
