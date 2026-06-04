@@ -93,17 +93,20 @@ function parseMatch(m) {
   const homeLabel = (m.home_team_label || '').toString().trim()
   const awayLabel = (m.away_team_label || '').toString().trim()
 
+  // For knockout TBD matches: home_team/away_team stored as null until teams qualify
+  // For group/confirmed knockout: use real team names from API
   const homeName = isKnockout
-    ? (homeLabel || 'TBD')
+    ? null
     : (m.home_team_name_en || m.home_team_name ||
-       (typeof m.home_team === 'object' ? m.home_team?.name_en : m.home_team) || '').toString().trim()
+       (typeof m.home_team === 'object' ? m.home_team?.name_en : m.home_team) || '').toString().trim() || null
 
   const awayName = isKnockout
-    ? (awayLabel || 'TBD')
+    ? null
     : (m.away_team_name_en || m.away_team_name ||
-       (typeof m.away_team === 'object' ? m.away_team?.name_en : m.away_team) || '').toString().trim()
+       (typeof m.away_team === 'object' ? m.away_team?.name_en : m.away_team) || '').toString().trim() || null
 
-  if (!homeName || !awayName) return null
+  // Group matches must have team names
+  if (!isKnockout && (!homeName || !awayName)) return null
 
   const { match_date, match_time } = parseMatchDate(m.local_date)
   const homeScore = (m.home_score !== null && m.home_score !== undefined && m.home_score !== '' && m.home_score !== 'null')
@@ -117,8 +120,8 @@ function parseMatch(m) {
     away_team:        awayName,
     home_team_label:  homeLabel || null,
     away_team_label:  awayLabel || null,
-    home_flag:        isKnockout ? '' : getFlag(homeName),
-    away_flag:        isKnockout ? '' : getFlag(awayName),
+    home_flag:        (isKnockout || !homeName) ? null : getFlag(homeName),
+    away_flag:        (isKnockout || !awayName) ? null : getFlag(awayName),
     local_date_raw:   m.local_date || null,
     stadium_id:       m.stadium_id ? Number(m.stadium_id) : null,
     match_date,

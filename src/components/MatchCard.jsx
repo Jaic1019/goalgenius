@@ -31,17 +31,9 @@ export default function MatchCard({
   match, pred, open, stadiums = {},
   draft = {}, onDraft, onSubmit, submitting, justSaved, error
 }) {
-  // Determine if teams are known real teams or still TBD/labels
-  const homeIsLabel = !match.home_flag && (
-    match.home_team?.toUpperCase() === 'TBD' ||
-    match.home_team?.toUpperCase().startsWith('WINNER') ||
-    match.home_team?.toUpperCase().startsWith('LOSER')
-  )
-  const awayIsLabel = !match.away_flag && (
-    match.away_team?.toUpperCase() === 'TBD' ||
-    match.away_team?.toUpperCase().startsWith('WINNER') ||
-    match.away_team?.toUpperCase().startsWith('LOSER')
-  )
+  // Teams are TBD when null (knockout matches before qualification)
+  const homeIsLabel = !match.home_team
+  const awayIsLabel = !match.away_team
   const isTBD = homeIsLabel || awayIsLabel
 
   const isKnockout    = isKnockoutMatch(match.group_stage)
@@ -55,13 +47,13 @@ export default function MatchCard({
   const rawStadium = getStadiumName(match.stadium_id, stadiums) || match.stadium || match.city || ''
   const stadiumDisplay = rawStadium.includes('·') ? rawStadium.split('·')[0].trim() : rawStadium
 
-  // Display name: use label if TBD, otherwise team name
+  // Display name: use label when team is null (TBD knockout)
   const homeDisplay = homeIsLabel
-    ? (match.home_team_label || match.home_team || 'À déterminer')
-    : (match.home_team || 'À déterminer')
+    ? (match.home_team_label || 'À déterminer')
+    : match.home_team
   const awayDisplay = awayIsLabel
-    ? (match.away_team_label || match.away_team || 'À déterminer')
-    : (match.away_team || 'À déterminer')
+    ? (match.away_team_label || 'À déterminer')
+    : match.away_team
 
   // Real-time consistency validation
   const hasScores = draft.home !== undefined && draft.home !== '' &&
@@ -87,7 +79,7 @@ export default function MatchCard({
   const ptsCls   = pts===10?'badge-gold':pts===5?'badge-green':pts===3?'badge-blue':'badge-gray'
   const ptsLabel = pts===10?'Score parfait !':pts===5?'Bon vainqueur !':pts===3?'Un score juste !':pts===0?'Raté.':''
   const canSave  = !submitting && !(consistencyError && hasScores && draft.winner)
-  const showScore = match.status === 'live' || match.status === 'finished'
+  const showScore = true // Always show score; colors differ by status
 
   return (
     <div className={`mc mc-${match.status}${isTBD?' mc-tbd':''}`}>
@@ -95,7 +87,10 @@ export default function MatchCard({
 
       {/* Header */}
       <div className="mc-head">
-        <span className="mc-group">{match.group_stage}</span>
+        <span className="mc-group">
+          {match.group_stage}
+          {isKnockout && match.api_id && <span className="mc-match-id"> · Match {match.api_id}</span>}
+        </span>
         <div className="mc-badges">
           <span className={`badge ${match.status==='live'?'badge-red':match.status==='finished'?'badge-gray':'badge-purple'}`}>
             {match.status==='live'&&<span className="live-dot"/>}
@@ -109,7 +104,7 @@ export default function MatchCard({
       {/* Teams + Score */}
       <div className="mc-teams">
         <div className="mc-team home">
-          {!homeIsLabel && <Flag url={match.home_flag} name={homeDisplay}/>}
+          {match.home_flag && <Flag url={match.home_flag} name={homeDisplay}/>}
           <span className="mc-team-name">{homeDisplay}</span>
         </div>
 
@@ -133,7 +128,7 @@ export default function MatchCard({
 
         <div className="mc-team away">
           <span className="mc-team-name">{awayDisplay}</span>
-          {!awayIsLabel && <Flag url={match.away_flag} name={awayDisplay}/>}
+          {match.away_flag && <Flag url={match.away_flag} name={awayDisplay}/>}
         </div>
       </div>
 
