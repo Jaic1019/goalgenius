@@ -100,7 +100,7 @@ export default function Leaderboard() {
       })
   }
 
-  const MEDAL = ['🥇','🥈','🥉']
+  const MEDAL = ['1st','2nd','3rd']
   const RANK_CLASS = ['rank0','rank1','rank2']
   const myEntry = board.find(e => e.uid === user?.id)
   const myRank  = board.findIndex(e => e.uid === user?.id) + 1
@@ -188,7 +188,7 @@ export default function Leaderboard() {
                   >
                     <span className="lb-rank">
                       {i < 3
-                        ? <span className="lb-medal">{MEDAL[i]}</span>
+                        ? <span className="lb-medal">{i===0?'🥇':i===1?'🥈':'🥉'}</span>
                         : <span className="lb-rn">{i+1}</span>
                       }
                     </span>

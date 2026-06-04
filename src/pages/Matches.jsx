@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useMatches } from '../hooks/useMatches'
 import { usePredictions } from '../hooks/usePredictions'
 import MatchCard from '../components/MatchCard'
+import { isPredictionOpen } from '../lib/timeUtils'
 import './Matches.css'
 
 const STAGES = ['Tous','Phase de groupes','Top 32','Top 16','Quarts de finale','Demi-finales','Finale']
@@ -17,19 +18,7 @@ function stageBucket(g) {
   return 'Phase de groupes'
 }
 
-function isKnockoutMatch(g) {
-  if (!g) return false
-  const s = g.toLowerCase()
-  return s.includes('r32')||s.includes('r16')||s.includes('top 32')||s.includes('top 16')||
-    s.includes('quart')||s.includes('qf')||s.includes('semi')||s.includes('demi')||s.includes('sf')||
-    s.includes('final')||s.includes('finale')||s.includes('3ème')||s.includes('3rd')
-}
-
-function canPredict(m) {
-  if (m.status !== 'upcoming') return false
-  if (!m.home_team || !m.away_team) return false
-  if (m.home_team.trim().toUpperCase()==='TBD'||m.away_team.trim().toUpperCase()==='TBD') return false
-  try { return new Date() < new Date(`${m.match_date}T${m.match_time?.slice(0,5)}:00`) } catch { return false }
+T${m.match_time?.slice(0,5)}:00`) } catch { return false }
 }
 
 export default function Matches() {
@@ -151,7 +140,7 @@ export default function Matches() {
           <div className="matches-grid">
             {upcoming.map(m=>(
               <MatchCard key={m.id} match={m} pred={predictions[m.id]}
-                open={canPredict(m)} draft={drafts[m.id]||{}}
+                open={isPredictionOpen(m)} draft={drafts[m.id]||{}}
                 onDraft={(f,v)=>setDraft(m.id,f,v)}
                 onSubmit={()=>handleSave(m)} submitting={saving[m.id]}
                 error={alerts[m.id]?.type==='error'?alerts[m.id].msg:null}

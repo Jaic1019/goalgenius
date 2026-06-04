@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMatches } from '../hooks/useMatches'
 import { usePredictions } from '../hooks/usePredictions'
 import MatchCard from '../components/MatchCard'
+import { isPredictionOpen } from '../lib/timeUtils'
 import './Home.css'
 
 const WC_START = new Date('2026-06-11T19:00:00+02:00')
@@ -17,19 +18,7 @@ function useCountdown(target) {
   return { days:Math.floor(ms/86400000), hours:Math.floor((ms%86400000)/3600000), minutes:Math.floor((ms%3600000)/60000), seconds:Math.floor((ms%60000)/1000), started:diff<=0 }
 }
 
-function isKnockoutMatch(g) {
-  if (!g) return false
-  const s = g.toLowerCase()
-  return s.includes('r32')||s.includes('r16')||s.includes('top 32')||s.includes('top 16')||
-    s.includes('quart')||s.includes('qf')||s.includes('semi')||s.includes('demi')||s.includes('sf')||
-    s.includes('final')||s.includes('finale')||s.includes('3ème')||s.includes('3rd')
-}
-
-function canPredict(m) {
-  if (m.status!=='upcoming') return false
-  if (!m.home_team||!m.away_team) return false
-  if (m.home_team.trim().toUpperCase()==='TBD'||m.away_team.trim().toUpperCase()==='TBD') return false
-  try { return new Date() < new Date(`${m.match_date}T${m.match_time?.slice(0,5)}:00`) } catch { return false }
+T${m.match_time?.slice(0,5)}:00`) } catch { return false }
 }
 
 export default function Home() {
@@ -124,7 +113,7 @@ export default function Home() {
           <div className="matches-grid">
             {today.map(m=>(
               <MatchCard key={m.id} match={m} pred={predictions[m.id]}
-                open={canPredict(m)} draft={drafts[m.id]||{}}
+                open={isPredictionOpen(m)} draft={drafts[m.id]||{}}
                 onDraft={(f,v)=>setDraft(m.id,f,v)} onSubmit={()=>handleSave(m)} submitting={saving[m.id]}
                 error={alerts[m.id]?.type==='error'?alerts[m.id].msg:null}
                 justSaved={justSaved[m.id]||false}
@@ -142,7 +131,7 @@ export default function Home() {
           <div className="matches-grid">
             {next.map(m=>(
               <MatchCard key={m.id} match={m} pred={predictions[m.id]}
-                open={canPredict(m)} draft={drafts[m.id]||{}}
+                open={isPredictionOpen(m)} draft={drafts[m.id]||{}}
                 onDraft={(f,v)=>setDraft(m.id,f,v)} onSubmit={()=>handleSave(m)} submitting={saving[m.id]}
                 error={alerts[m.id]?.type==='error'?alerts[m.id].msg:null}
                 justSaved={justSaved[m.id]||false}
