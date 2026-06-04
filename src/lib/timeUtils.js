@@ -161,7 +161,7 @@ export function isPredictionOpen(match) {
 export function isKnockoutMatch(g) {
   if (!g) return false
   const s = g.toLowerCase()
-  return s.includes('r32') || s.includes('r16') || s.includes('top 32') || s.includes('top 16') ||
+  return s.includes('r16') || s.includes('top 16') ||
     s.includes('quart') || s.includes('qf') || s.includes('semi') || s.includes('demi') ||
     s.includes('sf') || s.includes('final') || s.includes('finale') || s.includes('3ème') || s.includes('3rd')
 }

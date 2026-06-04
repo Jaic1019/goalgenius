@@ -14,7 +14,6 @@ function Flag({ url, name }) {
 function getStage(g) {
   if (!g) return 'group'
   const s = g.toLowerCase()
-  if (s.includes('top 32')||s.includes('r32')) return 'top32'
   if (s.includes('top 16')||s.includes('r16')) return 'top16'
   if (s.includes('quart')||s.includes('qf')) return 'qf'
   if (s.includes('demi')||s.includes('semi')||s.includes('sf')) return 'sf'
@@ -56,7 +55,6 @@ function calcStandings(matches, group) {
 }
 
 const KNOCKOUT_STAGES = [
-  { key:'top32', label:'Top 32', group_stage:'Top 32' },
   { key:'top16', label:'Top 16', group_stage:'Top 16' },
   { key:'qf',    label:'Quarts de finale', group_stage:'Quarts de finale' },
   { key:'sf',    label:'Demi-finales', group_stage:'Demi-finales' },

@@ -5,12 +5,11 @@ import MatchCard from '../components/MatchCard'
 import { isPredictionOpen, isKnockoutMatch } from '../lib/timeUtils'
 import './Matches.css'
 
-const STAGES = ['Tous','Phase de groupes','Top 32','Top 16','Quarts de finale','Demi-finales','Finale']
+const STAGES = ['Tous','Phase de groupes','Top 16','Quarts de finale','Demi-finales','Finale']
 
 function stageBucket(g) {
   if (!g) return 'Phase de groupes'
   const s = g.toLowerCase()
-  if (s.includes('r32')||s.includes('32')||s.includes('top 32')) return 'Top 32'
   if (s.includes('r16')||s.includes('16')||s.includes('top 16')) return 'Top 16'
   if (s.includes('qf')||s.includes('quart')) return 'Quarts de finale'
   if (s.includes('sf')||s.includes('semi')||s.includes('demi')) return 'Demi-finales'
@@ -28,6 +27,7 @@ export default function Matches() {
   const [stageF,  setStageF]    = useState('Tous')
   const [groupF,  setGroupF]    = useState('Tous')
   const [teamQ,   setTeamQ]     = useState('')
+  const [dateF,   setDateF]     = useState('')
 
   const groupNames = useMemo(() => ['Tous', ...new Set(
     matches.filter(m => stageBucket(m.group_stage)==='Phase de groupes')
@@ -38,6 +38,7 @@ export default function Matches() {
     if (statusF !== 'all' && m.status !== statusF) return false
     if (stageF  !== 'Tous' && stageBucket(m.group_stage) !== stageF) return false
     if (groupF  !== 'Tous' && m.group_stage !== groupF) return false
+    if (dateF && m.match_date !== dateF) return false
     if (teamQ.trim()) {
       const q = teamQ.trim().toLowerCase()
       return m.home_team?.toLowerCase().includes(q) || m.away_team?.toLowerCase().includes(q)
@@ -74,7 +75,7 @@ export default function Matches() {
     }
   }
 
-  function reset() { setStatusF('all'); setStageF('Tous'); setGroupF('Tous'); setTeamQ('') }
+  function reset() { setStatusF('all'); setStageF('Tous'); setGroupF('Tous'); setTeamQ(''); setDateF('') }
 
   if (loading && matches.length===0) return <div className="loading-screen"><div className="spinner"/></div>
 
@@ -116,9 +117,14 @@ export default function Matches() {
           </div>
         )}
         <div className="filter-row">
+          <span className="filter-lbl">Date</span>
+          <input type="date" className="team-search" style={{maxWidth:160}} value={dateF} onChange={e=>setDateF(e.target.value)}/>
+          {dateF && <button className="btn btn-ghost btn-sm" onClick={()=>setDateF('')}>×</button>}
+        </div>
+        <div className="filter-row">
           <span className="filter-lbl">Équipe</span>
           <input className="team-search" placeholder="Rechercher une équipe..." value={teamQ} onChange={e=>setTeamQ(e.target.value)}/>
-          {(statusF!=='all'||stageF!=='Tous'||groupF!=='Tous'||teamQ) &&
+          {(statusF!=='all'||stageF!=='Tous'||groupF!=='Tous'||teamQ||dateF) &&
             <button className="btn btn-ghost btn-sm" onClick={reset}>Réinitialiser</button>}
         </div>
       </div>

@@ -178,8 +178,7 @@ export async function syncFromAPI() {
           away_flag:      m.away_flag,
           local_date_raw: m.local_date_raw,
           stadium_id:     m.stadium_id,
-          match_date:     m.match_date,
-          match_time:     m.match_time,
+          // Never overwrite match_date/match_time — managed manually
           home_score:     m.home_score,
           away_score:     m.away_score,
           status:         m.status,
