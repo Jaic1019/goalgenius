@@ -171,7 +171,6 @@ export async function syncFromAPI() {
         existing.stadium_id !== m.stadium_id
       if (changed) {
         toUpsert.push({
-          id:             existing.id,
           api_id:         m.api_id,
           home_team:      m.home_team,
           away_team:      m.away_team,
