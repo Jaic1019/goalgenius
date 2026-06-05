@@ -82,11 +82,8 @@ export default function Leaderboard() {
       predsByMatch[p.match_id] = p
     }
 
-    // All valid matches sorted by date
+    // All 104 matches sorted by date — including knockout TBD
     return matches
-      .filter(m => m.home_team && m.away_team &&
-        m.home_team.toUpperCase() !== 'TBD' &&
-        m.away_team.toUpperCase() !== 'TBD')
       .sort((a,b) => a.match_date?.localeCompare(b.match_date) || a.match_time?.localeCompare(b.match_time))
       .map(match => {
         const pred = predsByMatch[match.id] || null
@@ -96,7 +93,10 @@ export default function Leaderboard() {
               { home_score: match.home_score, away_score: match.away_score }
             )
           : null
-        return { match, pred, pts }
+        // Display name: use label when team is null (knockout TBD)
+        const homeName = match.home_team || match.home_team_label || 'À déterminer'
+        const awayName = match.away_team || match.away_team_label || 'À déterminer'
+        return { match, pred, pts, homeName, awayName }
       })
   }
 
@@ -209,8 +209,8 @@ export default function Leaderboard() {
                     <div className="history-panel">
                       <div className="hist-title">
                         {isMe
-                          ? `Vos pronostics (${history.filter(h=>h.pred).length}/${history.length} matchs)`
-                          : `Pronostics de ${e.name.split(' ')[0]} (${history.filter(h=>h.pred).length}/${history.length} matchs)`
+                          ? `Vos pronostics — ${history.filter(h=>h.pred).length} soumis sur ${history.length} matchs`
+                          : `Pronostics de ${e.name.split(' ')[0]} — ${history.filter(h=>h.pred).length} soumis sur ${history.length} matchs`
                         }
                       </div>
 
@@ -220,8 +220,8 @@ export default function Leaderboard() {
                         const isPending  = h.match.status !== 'finished'
                         const hasPred    = !!h.pred
                         const winnerLabel = !h.pred ? null
-                          : h.pred.winner_pick === 'home' ? h.match.home_team
-                          : h.pred.winner_pick === 'away' ? h.match.away_team
+                          : h.pred.winner_pick === 'home' ? h.homeName
+                          : h.pred.winner_pick === 'away' ? h.awayName
                           : h.pred.winner_pick === 'draw' ? 'Match nul' : '—'
 
                         return (
@@ -233,10 +233,11 @@ export default function Leaderboard() {
                             {/* Match info */}
                             <div className="hist-left">
                               <span className="hist-match">
-                                {h.match.home_team} vs {h.match.away_team}
+                                {h.match.api_id && <span className="hist-match-id">M{h.match.api_id} · </span>}
+                                {h.homeName} vs {h.awayName}
                               </span>
                               <span className="hist-group">
-                                {h.match.group_stage} · {h.match.match_date} · {h.match.match_time?.slice(0,5)} CET
+                                {h.match.group_stage} · {h.match.match_date} · {h.match.match_time?.slice(0,5)} CEST
                               </span>
                             </div>
 

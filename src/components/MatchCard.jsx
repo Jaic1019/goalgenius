@@ -89,7 +89,7 @@ export default function MatchCard({
       <div className="mc-head">
         <span className="mc-group">
           {match.group_stage}
-          {isKnockout && match.api_id && <span className="mc-match-id"> · Match {match.api_id}</span>}
+          {match.api_id && <span className="mc-match-id"> · Match {match.api_id}</span>}
         </span>
         <div className="mc-badges">
           <span className={`badge ${match.status==='live'?'badge-red':match.status==='finished'?'badge-gray':'badge-purple'}`}>
