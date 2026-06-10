@@ -18,7 +18,9 @@ export default function Teams() {
   const [groupF, setGroupF] = useState('Tous')
   const { teams, groups } = useMemo(() => {
     const map = {}
-    for (const m of matches) {
+    // Only group stage matches — prevents duplicate teams when knockout teams qualify
+    const groupMatches = matches.filter(m => m.group_stage && /^[A-L]$/.test(m.group_stage.trim()))
+    for (const m of groupMatches) {
       if (m.home_team && !map[m.home_team]) map[m.home_team] = { name:m.home_team, flag:m.home_flag, group:m.group_stage }
       if (m.away_team && !map[m.away_team]) map[m.away_team] = { name:m.away_team, flag:m.away_flag, group:m.group_stage }
     }

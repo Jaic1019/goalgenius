@@ -100,8 +100,8 @@ export default function Leaderboard() {
       })
   }
 
-  const MEDAL = ['1st','2nd','3rd']
-  const RANK_CLASS = ['rank0','rank1','rank2']
+  const MEDAL = ['🥇','🥈','🥉','🏅','🏅']
+  const RANK_CLASS = ['rank0','rank1','rank2','rank3','rank4']
   const myEntry = board.find(e => e.uid === user?.id)
   const myRank  = board.findIndex(e => e.uid === user?.id) + 1
 
@@ -148,7 +148,7 @@ export default function Leaderboard() {
           {/* Podium top 3 */}
           {board.length >= 3 && (
             <div className="podium">
-              {[{e:board[1],r:1},{e:board[0],r:0},{e:board[2],r:2}].map(({e,r}) => (
+              {([{e:board[1],r:1},{e:board[0],r:0},{e:board[2],r:2},...(board[3]?[{e:board[3],r:3}]:[]),...(board[4]?[{e:board[4],r:4}]:[])]).map(({e,r}) => (
                 <div key={e.uid} className={`pod ${RANK_CLASS[r]}`}>
                   <div className="pod-medal">{MEDAL[r]}</div>
                   <div className={`pod-av ${RANK_CLASS[r]}`}>{e.name[0]}</div>
@@ -172,7 +172,7 @@ export default function Leaderboard() {
             </div>
 
             {board.map((e,i) => {
-              const isTop3     = i < 3
+              const isTop5     = i < 5
               const isMe       = e.uid === user?.id
               const isExpanded = expanded === e.uid
               // Admin can expand all, user can only expand own
@@ -182,23 +182,23 @@ export default function Leaderboard() {
               return (
                 <div key={e.uid}>
                   <div
-                    className={`lb-row ${isMe?'lb-me':''} ${isTop3?`lb-top${i}`:''}`}
+                    className={`lb-row ${isMe?'lb-me':''} ${isTop5?`lb-top${i}`:''}`}
                     onClick={() => toggleExpand(e.uid)}
                     style={{ cursor: canExpand ? 'pointer' : 'default' }}
                   >
                     <span className="lb-rank">
-                      {i < 3
-                        ? <span className="lb-medal">{i===0?'🥇':i===1?'🥈':'🥉'}</span>
+                      {i < 5
+                        ? <span className="lb-medal">{MEDAL[i]}</span>
                         : <span className="lb-rn">{i+1}</span>
                       }
                     </span>
                     <span className="lb-name">
-                      <span className={`lb-av ${isTop3?RANK_CLASS[i]:''}`}>{e.name[0]}</span>
+                      <span className={`lb-av ${isTop5?RANK_CLASS[i]:''}`}>{e.name[0]}</span>
                       <span className="lb-fullname">{e.name}</span>
                       {isMe && <span className="you-tag">Vous</span>}
                     </span>
                     <span className="lb-cell ar">{e.predCount}</span>
-                    <span className={`lb-pts ${isTop3?`top-pts${i}`:''}`}>{e.points}</span>
+                    <span className={`lb-pts ${isTop5?`top-pts${i}`:''}`}>{e.points}</span>
                     <span className="lb-expand">
                       {canExpand ? (isExpanded ? '▲' : '▼') : ''}
                     </span>
