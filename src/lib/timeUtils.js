@@ -93,7 +93,8 @@ export function toParisTime(localDateRaw, timezone, fallbackDate, fallbackTime) 
     return {
       date: dateDisplay,
       time: timeClean,
-      full: `${dateDisplay} · ${timeClean} CEST`
+      full: `${dateDisplay} · ${timeClean} CEST`,
+      utc:  trueUtc
     }
   } catch(e) {
     console.warn('[timeUtils]', e.message)
@@ -115,13 +116,13 @@ export function isPredictionOpen(match, stadiumsMap = {}) {
     const tz      = stadium?.timezone || 'America/New_York'
 
     if (match.local_date_raw) {
-      const { time } = toParisTime(match.local_date_raw, tz)
-      if (time === '—') return false
-      // Compare Paris time of kick-off with now
-      return new Date() < new Date(`${match.match_date}T${time}:00`)
+      const { utc } = toParisTime(match.local_date_raw, tz)
+      if (!utc) return false
+      // Compare UTC kick-off with now — correct across all timezones
+      return new Date() < utc
     }
     if (match.match_date && match.match_time) {
-      return new Date() < new Date(`${match.match_date}T${match.match_time.slice(0,5)}:00`)
+      return new Date() < new Date(`${match.match_date}T${match.match_time.slice(0,5)}:00Z`)
     }
     return false
   } catch { return false }
