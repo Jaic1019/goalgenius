@@ -59,7 +59,7 @@ function mapStage(group, type) {
 // ── Status parser ─────────────────────────────────────────────────
 function parseStatus(m) {
   if (m.finished === true || m.finished === 1 || m.finished === 'TRUE') return 'finished'
-  if (m.time_elapsed && m.time_elapsed !== 'notstarted' && Number(m.time_elapsed) > 0) return 'live'
+  if (m.time_elapsed && m.time_elapsed !== 'notstarted' && (Number(m.time_elapsed) > 0 || m.time_elapsed === 'live')) return 'live'
   const s = String(m.status || '').toLowerCase()
   if (s.includes('live') || s.includes('progress')) return 'live'
   if (s.includes('finish') || s.includes('ft') || s.includes('end')) return 'finished'
