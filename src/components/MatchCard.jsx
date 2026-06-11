@@ -68,11 +68,19 @@ export default function MatchCard({
     : 'draw'
     : null
 
+  // Derive winner from scores when API doesn't provide it
+  const matchWinner = match.winner ||
+    (match.status === 'finished' && match.home_score != null
+      ? match.home_score > match.away_score ? 'home'
+      : match.home_score < match.away_score ? 'away'
+      : 'draw'
+      : null)
+
   // Points calculation
   const pts = pred && match.home_score != null
     ? calcPoints(
         { home_score: pred.home_score, away_score: pred.away_score, winner_pick: pred.winner_pick },
-        { home_score: match.home_score, away_score: match.away_score, winner: match.winner }
+        { home_score: match.home_score, away_score: match.away_score, winner: matchWinner }
       )
     : null
 
