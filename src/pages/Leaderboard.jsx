@@ -17,23 +17,20 @@ export default function Leaderboard() {
   useEffect(() => { if (matches.length > 0) buildBoard() }, [matches])
 
   async function buildBoard() {
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, full_name, role')
-      .eq('role', 'employee')
-
-    const { data: preds } = await supabase
-      .from('predictions')
-      .select('user_id, match_id, home_score, away_score, winner_pick')
+    const [{ data: profiles }, { data: preds }, { data: freshMatches }] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, role').eq('role', 'employee'),
+      supabase.from('predictions').select('user_id, match_id, home_score, away_score, winner_pick'),
+      supabase.from('matches').select('id, home_score, away_score, status, winner'),
+    ])
 
     if (!profiles) { setLoading(false); return }
     setAllPreds(preds || [])
 
-    const finishedMatches = matches.filter(m => m.status === 'finished' && m.home_score != null)
-    setFinishedCount(finishedMatches.length)
-
     const matchMap = {}
-    for (const m of matches) matchMap[m.id] = m
+    for (const m of (freshMatches || [])) matchMap[m.id] = m
+
+    const finishedCount = (freshMatches || []).filter(m => m.status === 'finished' && m.home_score != null).length
+    setFinishedCount(finishedCount)
 
     const predsByUser = {}
     for (const p of (preds || [])) {
@@ -51,7 +48,7 @@ export default function Leaderboard() {
         if (match?.status === 'finished' && match.home_score != null) {
           const pts = calcPoints(
             { home_score: p.home_score, away_score: p.away_score, winner_pick: p.winner_pick },
-            { home_score: match.home_score, away_score: match.away_score }
+            { home_score: match.home_score, away_score: match.away_score, winner: match.winner }
           )
           points += pts ?? 0
           if (pts === 10) perfect++
@@ -90,7 +87,7 @@ export default function Leaderboard() {
         const pts = pred && match.status === 'finished' && match.home_score != null
           ? calcPoints(
               { home_score: pred.home_score, away_score: pred.away_score, winner_pick: pred.winner_pick },
-              { home_score: match.home_score, away_score: match.away_score }
+              { home_score: match.home_score, away_score: match.away_score, winner: match.winner }
             )
           : null
         // Display name: use label when team is null (knockout TBD)
