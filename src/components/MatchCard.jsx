@@ -87,7 +87,7 @@ export default function MatchCard({
   const ptsCls   = pts===10?'badge-gold':pts===5?'badge-green':pts===3?'badge-blue':'badge-gray'
   const ptsLabel = pts===10?'Score parfait !':pts===5?'Bon vainqueur !':pts===3?'Un score juste !':pts===0?'Raté.':''
   const canSave  = !submitting && !(consistencyError && hasScores && draft.winner)
-  const showScore = true // Always show score; colors differ by status
+  const showScore = true
 
   return (
     <div className={`mc mc-${match.status}${isTBD?' mc-tbd':''}`}>
@@ -120,9 +120,9 @@ export default function MatchCard({
           {showScore ? (
             <>
               <div className="mc-score-live display">
-                <span>{match.home_score}</span>
+                <span>{match.home_score ?? 0}</span>
                 <span className="mc-score-sep">–</span>
-                <span>{match.away_score}</span>
+                <span>{match.away_score ?? 0}</span>
               </div>
               {match.home_penalty!=null&&match.away_penalty!=null&&(
                 <div className="mc-penalty">pen. {match.home_penalty}–{match.away_penalty}</div>

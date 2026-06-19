@@ -16,11 +16,27 @@ export default function Leaderboard() {
 
   useEffect(() => { if (matches.length > 0) buildBoard() }, [matches])
 
+  async function fetchAllPredictions() {
+    const PAGE = 1000
+    let all = [], from = 0
+    while (true) {
+      const { data, error } = await supabase
+        .from('predictions')
+        .select('user_id, match_id, home_score, away_score, winner_pick')
+        .range(from, from + PAGE - 1)
+      if (error || !data || data.length === 0) break
+      all = all.concat(data)
+      if (data.length < PAGE) break
+      from += PAGE
+    }
+    return all
+  }
+
   async function buildBoard() {
-    const [{ data: profiles }, { data: preds }, { data: freshMatches }] = await Promise.all([
+    const [{ data: profiles }, { data: freshMatches }, preds] = await Promise.all([
       supabase.from('profiles').select('id, full_name, role').eq('role', 'employee'),
-      supabase.from('predictions').select('user_id, match_id, home_score, away_score, winner_pick'),
       supabase.from('matches').select('id, home_score, away_score, status, winner'),
+      fetchAllPredictions(),
     ])
 
     if (!profiles) { setLoading(false); return }
