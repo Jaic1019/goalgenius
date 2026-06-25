@@ -16,8 +16,12 @@ export function calcPoints(pred, result) {
   const rh = Number(result.home_score)
   const ra = Number(result.away_score)
 
-  // For knockout penalties: use API winner field if present
-  const realWinner = result.winner || (rh > ra ? 'home' : rh < ra ? 'away' : 'draw')
+  // Winner: score-based first, then penalties if scores equal, then draw (group only)
+  const realWinner = rh > ra ? 'home'
+    : ra > rh ? 'away'
+    : (result.home_penalty != null && result.away_penalty != null)
+      ? (result.home_penalty > result.away_penalty ? 'home' : 'away')
+      : 'draw'
   const predWinner = pred.winner_pick || (ph > pa ? 'home' : ph < pa ? 'away' : 'draw')
 
   const correctWinner  = predWinner === realWinner

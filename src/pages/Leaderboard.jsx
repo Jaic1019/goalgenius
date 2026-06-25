@@ -35,7 +35,7 @@ export default function Leaderboard() {
   async function buildBoard() {
     const [{ data: profiles }, { data: freshMatches }, preds] = await Promise.all([
       supabase.from('profiles').select('id, full_name, role').eq('role', 'employee'),
-      supabase.from('matches').select('id, home_score, away_score, status, winner'),
+      supabase.from('matches').select('id, home_score, away_score, status, winner, home_penalty, away_penalty'),
       fetchAllPredictions(),
     ])
 
@@ -64,7 +64,7 @@ export default function Leaderboard() {
         if (match?.status === 'finished' && match.home_score != null) {
           const pts = calcPoints(
             { home_score: p.home_score, away_score: p.away_score, winner_pick: p.winner_pick },
-            { home_score: match.home_score, away_score: match.away_score, winner: match.winner }
+            { home_score: match.home_score, away_score: match.away_score, winner: match.winner, home_penalty: match.home_penalty, away_penalty: match.away_penalty }
           )
           points += pts ?? 0
           if (pts === 10) perfect++
@@ -103,7 +103,7 @@ export default function Leaderboard() {
         const pts = pred && match.status === 'finished' && match.home_score != null
           ? calcPoints(
               { home_score: pred.home_score, away_score: pred.away_score, winner_pick: pred.winner_pick },
-              { home_score: match.home_score, away_score: match.away_score, winner: match.winner }
+              { home_score: match.home_score, away_score: match.away_score, winner: match.winner, home_penalty: match.home_penalty, away_penalty: match.away_penalty }
             )
           : null
         // Display name: use label when team is null (knockout TBD)

@@ -68,19 +68,11 @@ export default function MatchCard({
     : 'draw'
     : null
 
-  // Derive winner from scores when API doesn't provide it
-  const matchWinner = match.winner ||
-    (match.status === 'finished' && match.home_score != null
-      ? match.home_score > match.away_score ? 'home'
-      : match.home_score < match.away_score ? 'away'
-      : 'draw'
-      : null)
-
   // Points calculation
   const pts = pred && match.home_score != null
     ? calcPoints(
         { home_score: pred.home_score, away_score: pred.away_score, winner_pick: pred.winner_pick },
-        { home_score: match.home_score, away_score: match.away_score, winner: matchWinner }
+        { home_score: match.home_score, away_score: match.away_score, winner: match.winner, home_penalty: match.home_penalty, away_penalty: match.away_penalty }
       )
     : null
 
@@ -160,7 +152,7 @@ export default function MatchCard({
               }
             </div>
 
-            <div className="pred-section-label">📊 Score prédit <span className="pred-label-hint">(90 minutes)</span></div>
+            <div className="pred-section-label">📊 Score prédit <span className="pred-label-hint">{isKnockout ? '(90 min + prolong.)' : '(90 minutes)'}</span></div>
             <div className="pred-score-row">
               <div className="pred-score-block">
                 <div className="pred-score-label">{homeDisplay}</div>
