@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useMatches } from '../hooks/useMatches'
+import { isKnockoutMatch } from '../lib/timeUtils'
 import './Admin.css'
 
 export default function Admin() {
@@ -12,6 +13,7 @@ export default function Admin() {
   const [userForm, setUserForm] = useState({ full_name:'', email:'', password:'' })
   const [creating, setCreating] = useState(false)
   const [overrides, setOverrides] = useState({})
+  const [elimOv, setElimOv] = useState({})
 
   useEffect(() => { loadUsers() }, [])
 
@@ -46,6 +48,7 @@ export default function Admin() {
   }
 
   function setOv(id, side, val) { setOverrides(p=>({...p,[id]:{...p[id],[side]:val}})) }
+  function setElim(id, field, val) { setElimOv(p=>({...p,[id]:{...p[id],[field]:val}})) }
 
   async function saveOverride(match) {
     const o = overrides[match.id] || {}
@@ -56,6 +59,21 @@ export default function Admin() {
       .update({ home_score:h, away_score:a, status:'finished', admin_override:true })
       .eq('id', match.id)
     if (!error) { showAlert('Score corrigé ✅'); refresh() }
+    else showAlert('Erreur : '+error.message,'error')
+  }
+
+  async function saveElimination(match) {
+    const o = elimOv[match.id] || {}
+    const h  = o.home !== undefined ? Number(o.home) : match.home_score
+    const a  = o.away !== undefined ? Number(o.away) : match.away_score
+    if (isNaN(h) || isNaN(a)) { showAlert('Entrez les deux scores','error'); return }
+    const hp = o.hp !== undefined && o.hp !== '' ? Number(o.hp) : match.home_penalty ?? null
+    const ap = o.ap !== undefined && o.ap !== '' ? Number(o.ap) : match.away_penalty ?? null
+    const payload = { home_score:h, away_score:a, status:'finished', admin_override:true }
+    if (hp !== null && !isNaN(hp)) payload.home_penalty = hp
+    if (ap !== null && !isNaN(ap)) payload.away_penalty = ap
+    const { error } = await supabase.from('matches').update(payload).eq('id', match.id)
+    if (!error) { showAlert('Match élimination mis à jour ✅'); refresh() }
     else showAlert('Erreur : '+error.message,'error')
   }
 
@@ -96,7 +114,7 @@ export default function Admin() {
 
       {/* Tabs */}
       <div className="admin-tabs">
-        {[['overview','📊 Vue générale'],['users','👥 Collaborateurs'],['create','➕ Créer un compte'],['overrides','🔧 Correction scores']].map(([v,l])=>(
+        {[['overview','📊 Vue générale'],['users','👥 Collaborateurs'],['create','➕ Créer un compte'],['overrides','🔧 Correction scores'],['elimination','⚡ Élimination']].map(([v,l])=>(
           <button key={v} className={`atab ${tab===v?'active':''}`} onClick={()=>setTab(v)}>{l}</button>
         ))}
       </div>
@@ -147,9 +165,9 @@ export default function Admin() {
       {tab==='overrides' && (
         <div className="card">
           <div className="admin-section-title">Correction manuelle des scores</div>
-          <p className="override-note">⚠️ À utiliser uniquement si le score de l'API est incorrect ou manquant. Sera écrasé si l'API fournit un score correct ultérieurement.</p>
-          {matches.filter(m=>m.status!=='upcoming').length===0&&<p style={{color:'var(--text2)',fontSize:14,marginTop:'0.5rem'}}>Aucun match en direct ou terminé.</p>}
-          {matches.filter(m=>m.status!=='upcoming').map(m=>(
+          <p className="override-note">⚠️ Phase de groupes uniquement. Pour les matchs à élimination directe, utilisez l'onglet ⚡ Élimination.</p>
+          {matches.filter(m=>m.status!=='upcoming'&&!isKnockoutMatch(m.group_stage)).length===0&&<p style={{color:'var(--text2)',fontSize:14,marginTop:'0.5rem'}}>Aucun match de groupe en direct ou terminé.</p>}
+          {matches.filter(m=>m.status!=='upcoming'&&!isKnockoutMatch(m.group_stage)).map(m=>(
             <div key={m.id} className="override-row">
               <div className="or-match">{m.home_team} vs {m.away_team} <span className="or-group">· {m.group_stage} · {m.match_date}</span></div>
               {m.home_score!=null&&<div className="or-current">Résultat actuel : <strong>{m.home_score}–{m.away_score}</strong>{m.admin_override?' (corrigé manuellement)':''}</div>}
@@ -158,6 +176,35 @@ export default function Admin() {
                 <span style={{color:'var(--text2)'}}>–</span>
                 <input type="number" min="0" max="20" placeholder="Ext." className="or-in" value={overrides[m.id]?.away??m.away_score??''} onChange={e=>setOv(m.id,'away',e.target.value)}/>
                 <button className="btn btn-green btn-sm" onClick={()=>saveOverride(m)}>Enregistrer</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='elimination' && (
+        <div className="card">
+          <div className="admin-section-title">Matchs à élimination directe</div>
+          <p className="override-note">⚡ Score (90 min + prolong.) + tirs au but si nécessaire. Un seul enregistrement verrouille le match contre la sync API.</p>
+          {matches.filter(m=>isKnockoutMatch(m.group_stage)).length===0&&<p style={{color:'var(--text2)',fontSize:14,marginTop:'0.5rem'}}>Aucun match à élimination directe chargé.</p>}
+          {matches.filter(m=>isKnockoutMatch(m.group_stage)).map(m=>(
+            <div key={m.id} className="override-row">
+              <div className="or-match">{m.home_team??m.home_team_label??'TBD'} vs {m.away_team??m.away_team_label??'TBD'} <span className="or-group">· {m.group_stage} · {m.match_date}</span></div>
+              {m.home_score!=null&&<div className="or-current">
+                Score : <strong>{m.home_score}–{m.away_score}</strong>
+                {m.home_penalty!=null&&<> · Tirs au but : <strong>{m.home_penalty}–{m.away_penalty}</strong></>}
+                {m.admin_override&&<> · <span style={{color:'var(--gold)'}}>Verrouillé admin</span></>}
+              </div>}
+              <div className="or-inputs" style={{flexWrap:'wrap',gap:8}}>
+                <span style={{color:'var(--text2)',fontSize:11,width:'100%'}}>Score (90 min + prolong.)</span>
+                <input type="number" min="0" max="20" placeholder="Dom." className="or-in" value={elimOv[m.id]?.home??m.home_score??''} onChange={e=>setElim(m.id,'home',e.target.value)}/>
+                <span style={{color:'var(--text2)'}}>–</span>
+                <input type="number" min="0" max="20" placeholder="Ext." className="or-in" value={elimOv[m.id]?.away??m.away_score??''} onChange={e=>setElim(m.id,'away',e.target.value)}/>
+                <span style={{color:'var(--text3)',fontSize:11,width:'100%',marginTop:4}}>Tirs au but (si égalité)</span>
+                <input type="number" min="0" max="20" placeholder="Dom. pen." className="or-in" value={elimOv[m.id]?.hp??m.home_penalty??''} onChange={e=>setElim(m.id,'hp',e.target.value)}/>
+                <span style={{color:'var(--text2)'}}>–</span>
+                <input type="number" min="0" max="20" placeholder="Ext. pen." className="or-in" value={elimOv[m.id]?.ap??m.away_penalty??''} onChange={e=>setElim(m.id,'ap',e.target.value)}/>
+                <button className="btn btn-green btn-sm" onClick={()=>saveElimination(m)}>Enregistrer</button>
               </div>
             </div>
           ))}
