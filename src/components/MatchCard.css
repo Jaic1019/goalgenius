@@ -93,3 +93,14 @@
 
 /* Validation error from parent */
 .pred-error { background:var(--red-dim); color:var(--red); border:1px solid var(--red-border); border-radius:var(--radius-xs); padding:8px 12px; font-size:13px; font-weight:600; line-height:1.5; }
+
+/* Winner highlight (finished matches) */
+.mc-team-win .mc-team-name { color:var(--green); font-weight:800; }
+.mc-win-crown { font-size:14px; flex-shrink:0; }
+
+/* Penalty final display */
+.mc-penalty-final { font-size:11px; color:var(--gold); font-weight:700; background:var(--gold-dim); border:1px solid var(--gold-border); border-radius:var(--radius-xs); padding:3px 8px; margin-top:4px; white-space:nowrap; }
+
+/* Rules note in prediction form */
+.pred-rules-note { font-size:11px; color:var(--text3); line-height:1.6; padding:7px 10px; background:var(--bg4); border-radius:var(--radius-xs); border-left:2px solid var(--mca3); }
+.pred-rules-note strong { color:var(--text2); font-weight:700; }

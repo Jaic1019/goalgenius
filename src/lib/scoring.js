@@ -53,7 +53,7 @@ export function validatePrediction(homeScore, awayScore, winnerPick, isKnockout 
   const h = Number(homeScore), a = Number(awayScore)
   if (!isNaN(h) && !isNaN(a)) {
     const implied = h > a ? 'home' : h < a ? 'away' : 'draw'
-    if (implied !== winnerPick) {
+    if (implied !== winnerPick && !(isKnockout && implied === 'draw')) {
       const labels = { home: 'l\'équipe domicile', away: 'l\'équipe extérieure', draw: 'un match nul' }
       return `⚠️ Votre score (${h}–${a}) indique une victoire de ${labels[implied]}, mais vous avez choisi un vainqueur différent. Veuillez corriger votre pronostic pour qu'il soit cohérent.`
     }

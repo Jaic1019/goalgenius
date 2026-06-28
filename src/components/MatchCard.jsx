@@ -81,6 +81,17 @@ export default function MatchCard({
   const canSave  = !submitting && !(consistencyError && hasScores && draft.winner)
   const showScore = true
 
+  // Winner highlight for finished matches
+  const isFinished   = match.status === 'finished'
+  const hasPenalties = match.home_penalty != null && match.away_penalty != null
+  const realWinner   = isFinished && match.home_score != null
+    ? match.home_score > match.away_score ? 'home'
+    : match.away_score > match.home_score ? 'away'
+    : hasPenalties
+      ? (match.home_penalty > match.away_penalty ? 'home' : 'away')
+      : 'draw'
+    : null
+
   return (
     <div className={`mc mc-${match.status}${isTBD?' mc-tbd':''}`}>
       {match.status === 'live' && <div className="mc-live-bar"/>}
@@ -103,9 +114,10 @@ export default function MatchCard({
 
       {/* Teams + Score */}
       <div className="mc-teams">
-        <div className="mc-team home">
+        <div className={`mc-team home${realWinner==='home'?' mc-team-win':''}`}>
           {match.home_flag && <Flag url={match.home_flag} name={homeDisplay}/>}
           <span className="mc-team-name">{homeDisplay}</span>
+          {realWinner==='home'&&<span className="mc-win-crown">🏆</span>}
         </div>
 
         <div className="mc-center">
@@ -116,8 +128,10 @@ export default function MatchCard({
                 <span className="mc-score-sep">–</span>
                 <span>{match.away_score ?? 0}</span>
               </div>
-              {match.home_penalty!=null&&match.away_penalty!=null&&(
-                <div className="mc-penalty">pen. {match.home_penalty}–{match.away_penalty}</div>
+              {hasPenalties&&(
+                isFinished
+                  ? <div className="mc-penalty-final">🥅 Tirs au but : {match.home_penalty}–{match.away_penalty}</div>
+                  : <div className="mc-penalty">pen. {match.home_penalty}–{match.away_penalty}</div>
               )}
             </>
           ) : (
@@ -126,7 +140,8 @@ export default function MatchCard({
           {stadiumDisplay&&<div className="mc-city">🏟 {stadiumDisplay}</div>}
         </div>
 
-        <div className="mc-team away">
+        <div className={`mc-team away${realWinner==='away'?' mc-team-win':''}`}>
+          {realWinner==='away'&&<span className="mc-win-crown">🏆</span>}
           <span className="mc-team-name">{awayDisplay}</span>
           {match.away_flag && <Flag url={match.away_flag} name={awayDisplay}/>}
         </div>
@@ -149,6 +164,13 @@ export default function MatchCard({
               {isUpdate
                 ?<>✏️ <strong>Modifier votre pronostic</strong> — saisissez de nouveaux scores et validez.</>
                 :<>🎯 <strong>Saisissez votre pronostic</strong> avant le coup d'envoi. Modifiable jusqu'au début du match.</>
+              }
+            </div>
+
+            <div className="pred-rules-note">
+              📋 {isKnockout
+                ? <>Le score correspond aux <strong>90 min + prolongations (120 min)</strong>. En cas d'égalité, les tirs au but déterminent uniquement le vainqueur final.</>
+                : <>Le score correspond aux <strong>90 minutes réglementaires</strong>.</>
               }
             </div>
 
